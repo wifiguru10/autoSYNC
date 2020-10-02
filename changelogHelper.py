@@ -12,7 +12,7 @@ class changelogHelper:
     watch_list = "" #networkID watch list
     tag_target = ""
     changed_nets = ""
-    adminEmail = "ndarrow@cisco.com"
+    adminEmail = []
     last_Checkin = ""
     ignoreAPI = ""
 
@@ -24,6 +24,11 @@ class changelogHelper:
         self.changed_nets = []
         self.ignoreAPI = True
         return
+
+    def addEmail(self,email):
+        if not email in self.adminEmail:
+            self.adminEmail.append(email)
+            print(f'{bcolors.OKGREEN}Changlog: Adding Email[{bcolors.WARNING}{email}{bcolors.OKGREEN}] to allowed list{bcolors.ENDC}')
 
     #adds network to watch-list
     def addNetwork(self, netid):
@@ -46,9 +51,10 @@ class changelogHelper:
         
         changes = self.getChanges(self.last_Checkin)
         hasChange = False
+        print(f'{bcolors.OKGREEN}Active Admin Emails:[{bcolors.WARNING}{self.adminEmail}{bcolors.OKGREEN}]{bcolors.ENDC}')
         for c in changes:
             #print(c)
-            if 'adminEmail' in c and c['adminEmail'] == self.adminEmail:
+            if 'adminEmail' in c and c['adminEmail'] in self.adminEmail or len(self.adminEmail) == 0: #changed this to support arrays instead of specific
                 if 'networkId' in c and c['networkId'] in self.watch_list:
                     if 'page' in c and c['page'] == 'via API' and self.ignoreAPI:
                         continue
@@ -74,9 +80,9 @@ class changelogHelper:
          #{ 'ts': '2020-09-17T16:31:54.857306Z',
          #  'adminName': 'Nico Darrow',
          #  'adminEmail': 'ndarrow@cisco.com',
-         #  'adminId': '577586652210300701',
+         #  'adminId': '5701',
          #  'networkName': 'AutoSync Test 21',
-         #  'networkId': 'N_577586652210342748',
+         #  'networkId': 'N_23423424234234',
          #  'page': 'Organization overview',
          #  'label': 'Network tags',
          #  'oldValue': '["autoSYNC"]',

@@ -19,6 +19,22 @@ import tagHelper2
 
 import changelogHelper
 
+import configparser
+
+
+config = configparser.ConfigParser()
+config.sections()
+config.read('autoSYNC.cfg')
+
+if 'true' in config['autoSYNC']['WRITE'].lower(): WRITE = True
+else: WRITE = False
+
+if 'true' in config['autoSYNC']['ALL_ORGS'].lower(): orgs_whitelist = []
+else:
+    orgs_whitelist = config['autoSYNC']['Orgs'] 
+
+radius_secret = config['autoSYNC']['RADIUS_SECRET']
+
 #################### User-Configurable 
 
 
@@ -33,7 +49,7 @@ radius_secret = 'meraki123'  #THIS IS NEEDED FOR ALL EAP!!! This is the key for 
 #the following orgs_whitelist will limit the script to only monitoring specific orgs, or leave blank to search all
 #orgs_whitelist = [] #Uncomment this line to scan ALL ORGS 
 #orgs_whitelist = [ '1234567890' , '2345678901' ,'3456789012' ] #this object is shared across tagHelper instances, to keep whitelist in sync
-orgs_whitelist = [ '121177' , '577586652210266696' ,'577586652210266697' ] #this object is shared across tagHelper instances, to keep whitelist in sync
+#orgs_whitelist = [ '121177' , '577586652210266696' ,'577586652210266697' ] #this object is shared across tagHelper instances, to keep whitelist in sync
 
 WRITE = True   #Set to False to test the script (read-only)
 
