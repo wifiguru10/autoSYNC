@@ -74,16 +74,6 @@ class tagHelper:
                     #print("Not an org in scope")
                     continue
             try:
-                 ### Network Object
-                 #{'id': 'N_577586652210342629',
-                 # 'organizationId': '121177',
-                 # 'name': 'AutoSync Test2',
-                 # 'productTypes': ['wireless'],
-                 # 'timeZone': 'America/Los_Angeles',
-                 # 'tags': ['autoSYNC'],
-                 # 'enrollmentString': None,
-                 # 'url': 'https://n26.meraki.com/AutoSync-Test2/n/6kgJMbA/manage/usage/list'}]
-
                 nets = self.db.organizations.getOrganizationNetworks(orgID)
                 for n in nets:
                     tags = n['tags']
