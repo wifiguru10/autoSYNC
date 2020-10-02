@@ -10,7 +10,7 @@ import meraki
 from datetime import datetime
 import time
 import copy
-import sys
+import sys,os
 
 from mNetlib import *
 import tagHelper2
@@ -64,6 +64,9 @@ def main():
 
     # Fire up Meraki API and build DB's
     
+    log_dir = os.path.join(os.getcwd(), "Logs/")
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
     db = meraki.DashboardAPI(api_key=g.get_api_key(), base_url='https://api.meraki.com/api/v1/', print_console=False) 
     th_array = []
     th_tmp = tagHelper2.tagHelper(db, tag_target, tag_master,orgs_whitelist)
