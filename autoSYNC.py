@@ -13,14 +13,10 @@ import copy
 import sys
 
 from mNetlib import *
-
-#from tagHelper import *
 import tagHelper2
-
 import changelogHelper
-
 import configparser
-
+import get_keys as g
 
 config = configparser.ConfigParser()
 config.sections()
@@ -67,7 +63,7 @@ def main():
 
     # Fire up Meraki API and build DB's
     
-    db = meraki.DashboardAPI(api_key=None, base_url='https://api.meraki.com/api/v1/', print_console=False) 
+    db = meraki.DashboardAPI(api_key=g.get_api_key(), base_url='https://api.meraki.com/api/v1/', print_console=False) 
     th_array = []
     th_tmp = tagHelper2.tagHelper(db, tag_target, tag_master,orgs_whitelist)
     th_array.append(th_tmp)
