@@ -27,7 +27,8 @@ else: WRITE = False
 
 if 'true' in config['autoSYNC']['ALL_ORGS'].lower(): orgs_whitelist = []
 else:
-    orgs_whitelist = config['autoSYNC']['Orgs'] 
+    orgs_whitelist = config['autoSYNC']['Orgs'].replace(' ','').split(',')
+#    print(orgs_whitelist)
 
 radius_secret = config['autoSYNC']['RADIUS_SECRET']
 
