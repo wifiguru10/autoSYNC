@@ -136,6 +136,7 @@ def main():
                     exit()
                 master = mro
                 master_num += 1
+                print(f'Master count {master_num}')
                 clh.clearNetworks()
                 clh.addNetwork(mro.net_id)
                 continue
