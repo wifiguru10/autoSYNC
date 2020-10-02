@@ -31,10 +31,11 @@ tag_master  = "as:master" #to assign source/Gold
 radius_secret = 'meraki123'  #THIS IS NEEDED FOR ALL EAP!!! This is the key for all 802.1x radius AAA
 
 #the following orgs_whitelist will limit the script to only monitoring specific orgs, or leave blank to search all
-orgs_whitelist = [] #Uncomment this line to scan ALL ORGS 
+#orgs_whitelist = [] #Uncomment this line to scan ALL ORGS 
 #orgs_whitelist = [ '1234567890' , '2345678901' ,'3456789012' ] #this object is shared across tagHelper instances, to keep whitelist in sync
+orgs_whitelist = [ '121177' , '577586652210266696' ,'577586652210266697' ] #this object is shared across tagHelper instances, to keep whitelist in sync
 
-WRITE = False    #Set to False to test the script (read-only)
+WRITE = True   #Set to False to test the script (read-only)
 
 #################### User-Configurable 
 
@@ -61,6 +62,7 @@ def main():
     #Master ChangeLog Helper
     clh = changelogHelper.changelogHelper(db, orgs)
     clh.ignoreAPI = False #make sure it'll trigger on API changes too, default is TRUE
+    clh.addEmail("ndarrow@cisco.com")
     #clh.addNetwork('L_577586652210275901')
 
     clh_clones = changelogHelper.changelogHelper(db, orgs)
@@ -83,7 +85,12 @@ def main():
         print(f'\t{bcolors.HEADER}****************************{bcolors.FAIL}START LOOP{bcolors.HEADER}*****************************')
         print(bcolors.ENDC)
         startTime = time.time()
-        
+        if WRITE:
+            print(f'{bcolors.OKGREEN}WRITE MODE[{bcolors.WARNING}ENABLED{bcolors.OKGREEN}]{bcolors.ENDC}')
+        else:
+            print(f'{bcolors.OKGREEN}WRITE MODE[{bcolors.WARNING}DISABLED{bcolors.OKGREEN}]{bcolors.ENDC}')
+
+       
         if loop_count > 0: #if it's not the first loop, check for changes
             master_change = clh.hasChange()
             clone_change = clh_clones.hasChange()
@@ -95,16 +102,14 @@ def main():
             if loop_count > 0: th.sync() #taghelper, look for any new networks inscope
             th.show() #show inscope networks/orgs
 
-
-
             if clone_change: #if there's a change to clones, run a short loop syncing just those networks
-                print(f'{bcolors.FAIL}Clone change Detected:{bcolors.Blink} Syncing Networks{bcolors.ENDC}')
+                print(f'{bcolors.FAIL}Change in a target Network Detected:{bcolors.Blink} Initializing Sync{bcolors.ENDC}')
                 inscope_clones = clh_clones.changed_nets #gets list of networks changed
                 if not len(inscope_clones) == 0:
                     mr_obj = []
                     for ic in inscope_clones:
-                       mr_obj.append(MR_network(db,ic))
-                mr_obj.append(MR_network(db,clh.watch_list[0])) 
+                       mr_obj.append(MR_network(db,ic,WRITE))
+                mr_obj.append(MR_network(db,clh.watch_list[0],WRITE)) 
             elif master_change:
                 mr_obj = []
                 if loop_count == 0:
@@ -113,19 +118,24 @@ def main():
                     print(f'{bcolors.FAIL}Master change Detected:{bcolors.Blink} Syncing Networks{bcolors.ENDC}')
                 
                 for net in th.nets:
-                    mr = MR_network(db,net)
+                    mr = MR_network(db,net,WRITE)
                     mr_obj.append(mr)
 
                    
             else:
-                print(f'{bcolors.OKBLUE}No changes to clones detected{bcolors.ENDC}')
+                print(f'{bcolors.OKBLUE}No changes detected in target networks{bcolors.ENDC}')
 
             print()
         
         master = None
+        master_num = 0
         for mro in mr_obj:
             if tag_master in mro.tags:
+                if master_num > 1:
+                    print(f'{bcolors.FAIL} ERROR: Multiple Master networks detected... exiting....')
+                    exit()
                 master = mro
+                master_num += 1
                 clh.clearNetworks()
                 clh.addNetwork(mro.net_id)
                 continue
@@ -133,7 +143,8 @@ def main():
                 clh_clones.addNetwork(mro.net_id)
        
         if master == None:
-            print(f'{bcolors.ENDC}Warning: No master Network detected')
+            print(f'{bcolors.ENDC}Warning: No master Network detected.... going to sleep for 5s')
+            time.sleep(5)
             continue
         else:
             print(f'{bcolors.OKBLUE}Master is [{bcolors.WARNING}{master.name}{bcolors.OKBLUE}]{bcolors.ENDC}')

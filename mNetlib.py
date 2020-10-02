@@ -110,6 +110,7 @@ class MR_network:
     ssids = {}  #  ssid[0] = {<SSID Object>}
     ssids_changed = ""  #holds array of SSID's that changed, to bypass writing to non-changed
     rfprofiles = {} 
+    WRITE = False
 
     #Group Policies
     master_GP = None #this holds the master group policy list (for SSID reference, iPSK)
@@ -118,11 +119,12 @@ class MR_network:
 
 
     #Initialize with network_Id
-    def __init__(self, db, net_id):
+    def __init__(self, db, net_id, write_flag):
         self.ssids = {}
         network_info = db.networks.getNetwork(net_id)
         if "wireless" in network_info['productTypes']:
             self.db = db
+            self.WRITE = write_flag
             self.net_id = net_id
             self.name = network_info['name']
             self.org_id = network_info['organizationId']
@@ -204,11 +206,11 @@ class MR_network:
                     print(f'Updating a RF profile [{name}]')
                     rfp.pop('name') #this needs to be done otherwise the update will fail
                     #print(rfp)
-                    self.db.wireless.updateNetworkWirelessRfProfile(self.net_id, rfProfileId=cfound['id'], **rfp)
+                    if self.WRITE: self.db.wireless.updateNetworkWirelessRfProfile(self.net_id, rfProfileId=cfound['id'], **rfp)
             else:
                 print(f'Creating a new RF Profile [{name}]')
                 #print(rfp)
-                self.db.wireless.createNetworkWirelessRfProfile(self.net_id, **rfp)
+                if self.WRITE: self.db.wireless.createNetworkWirelessRfProfile(self.net_id, **rfp)
                 
         return
 
@@ -249,7 +251,7 @@ class MR_network:
         print(f'{bcolors.FAIL}Wiping network {bcolors.Blink}{self.name}{bcolors.ENDC}')
         #wipe all the SSIDs
         while count < 15:
-            self.db.wireless.updateNetworkWirelessSsid(self.net_id, count, name="Unconfigured SSID "+str(count+1), enabled=False, authMode="open", ipAssignmentMode="NAT mode", minBitrate="1", bandSelection="Dual band operation", perClientBandwidthLimitUp="0", perClientBandwidthLimitDown="0", perSsidBandwidthLimitUp="0", perSsidBandwidthLimitDown="0", mandatoryDhcpEnabled=False, visible=True, availableOnAllAps= True, availabilityTags=[], useVlanTagging=False)
+            if self.WRITE: self.db.wireless.updateNetworkWirelessSsid(self.net_id, count, name="Unconfigured SSID "+str(count+1), enabled=False, authMode="open", ipAssignmentMode="NAT mode", minBitrate="1", bandSelection="Dual band operation", perClientBandwidthLimitUp="0", perClientBandwidthLimitDown="0", perSsidBandwidthLimitUp="0", perSsidBandwidthLimitDown="0", mandatoryDhcpEnabled=False, visible=True, availableOnAllAps= True, availabilityTags=[], useVlanTagging=False)
             count += 1
         self.getSSIDS()
     
@@ -257,7 +259,7 @@ class MR_network:
         current = self.db.wireless.getNetworkWirelessRfProfiles(self.net_id)
         self.rfprofiles.clear()
         for rfp in current:
-            self.db.wireless.deleteNetworkWirelessRfProfile(self.net_id, rfProfileId=rfp['id'])
+            if self.WRITE: self.db.wireless.deleteNetworkWirelessRfProfile(self.net_id, rfProfileId=rfp['id'])
 
         print(f'{bcolors.OKGREEN}{bcolors.Blink}Done.{bcolors.ResetBlink} Wiped all SSIDs and RF-profiles{bcolors.ENDC}')
         return
@@ -340,26 +342,26 @@ class MR_network:
             ### Clone Wireless Settings
             print(f'\t{bcolors.OKBLUE}Updating Wireless Settings in network {bcolors.WARNING}{self.name}{bcolors.ENDC}')
             wifiCFG = self.db.wireless.getNetworkWirelessSettings(mr_obj.net_id)
-            self.db.wireless.updateNetworkWirelessSettings(self.net_id,**wifiCFG)
+            if self.WRITE: self.db.wireless.updateNetworkWirelessSettings(self.net_id,**wifiCFG)
             ### /end-Wifi Settings
  
             ### Clone Traffic Analytics Settings
             print(f'\t{bcolors.OKBLUE}Updating Traffic Analytics Settings in network {bcolors.WARNING}{self.name}{bcolors.ENDC}')
             taCFG = self.db.networks.getNetworkTrafficAnalysis(mr_obj.net_id)
-            self.db.networks.updateNetworkTrafficAnalysis(self.net_id,**taCFG)
+            if self.WRITE: self.db.networks.updateNetworkTrafficAnalysis(self.net_id,**taCFG)
             ### /end-Traffic Analytics Settings
 
             ## Clone Bluetooth/IOT Settings
             print(f'\t{bcolors.OKBLUE}Updating Bluetooth/IOT Settingsin network {bcolors.WARNING}{self.name}{bcolors.ENDC}')
             btCFG = self.db.wireless.getNetworkWirelessBluetoothSettings(mr_obj.net_id)
-            self.db.wireless.updateNetworkWirelessBluetoothSettings(self.net_id,**btCFG)
+            if self.WRITE: self.db.wireless.updateNetworkWirelessBluetoothSettings(self.net_id,**btCFG)
             ## / end-Bluetooth/IOT
 
             ## Clone Syslog Settings
             print(f'\t{bcolors.OKBLUE}Updating Syslog Settingsin network {bcolors.WARNING}{self.name}{bcolors.ENDC}')
             try:
                 syslogCFG = self.db.networks.getNetworkSyslogServers(mr_obj.net_id)
-                self.db.networks.updateNetworkSyslogServers(self.net_id,**syslogCFG)
+                if self.WRITE: self.db.networks.updateNetworkSyslogServers(self.net_id,**syslogCFG)
             except:
                 print(f'\t\t-{bcolors.FAIL}Failed to update syslog. Make sure all roles are compatible across clones{bcolors.ENDC}')
             ## / end-Syslog Settings
@@ -367,7 +369,7 @@ class MR_network:
             ## Clone SNMP Settings
             print(f'\t{bcolors.OKBLUE}Updating SNMP Settingsin network {bcolors.WARNING}{self.name}{bcolors.ENDC}')
             snmpCFG = self.db.networks.getNetworkSnmp(mr_obj.net_id)
-            self.db.networks.updateNetworkSnmp(self.net_id,**snmpCFG)
+            if self.WRITE: self.db.networks.updateNetworkSnmp(self.net_id,**snmpCFG)
             ## / end-SNMP Settings
 
 
@@ -394,7 +396,7 @@ class MR_network:
                        wh.pop('id')
                        wh.pop('networkId')
                        tmpName = wh['name']
-                       self.db.networks.createNetworkWebhooksHttpServer(self.net_id, **wh)
+                       if self.WRITE: self.db.networks.createNetworkWebhooksHttpServer(self.net_id, **wh)
                        print(f'\t\t{bcolors.OKBLUE}-Webhook {bcolors.WARNING}{tmpName}{bcolors.ENDC}')
                     except:
                        print(f'\t\t{bcolors.FAIL}-Webhook {bcolors.WARNING}{tmpName}{bcolors.FAIL} already exists{bcolors.ENDC}')
@@ -402,7 +404,7 @@ class MR_network:
 
                 ### Clone Alerts
                 print(f'\t{bcolors.OKBLUE}Updating Alerts in network {bcolors.WARNING}{self.name}{bcolors.ENDC}')
-                self.db.networks.updateNetworkAlertsSettings(self.net_id, **alerts)
+                if self.WRITE: self.db.networks.updateNetworkAlertsSettings(self.net_id, **alerts)
                 ### / end-Alerts
             ### /end-Alerts and Webhooks
             
@@ -433,12 +435,12 @@ class MR_network:
                 
                 #print(f'L3 Rules are {newL3}')
                 newL3['allowLanAccess'] = lanAccess
-                self.db.wireless.updateNetworkWirelessSsidFirewallL3FirewallRules(self.net_id,count, **newL3)
+                if self.WRITE: self.db.wireless.updateNetworkWirelessSsidFirewallL3FirewallRules(self.net_id,count, **newL3)
                 l7rules = self.db.wireless.getNetworkWirelessSsidFirewallL7FirewallRules(mr_obj.net_id,count)
-                self.db.wireless.updateNetworkWirelessSsidFirewallL7FirewallRules(self.net_id,count, **l7rules)
+                if self.WRITE: self.db.wireless.updateNetworkWirelessSsidFirewallL7FirewallRules(self.net_id,count, **l7rules)
                 try:
                     TSrules = self.db.wireless.getNetworkWirelessSsidTrafficShapingRules(mr_obj.net_id, count)
-                    self.db.wireless.updateNetworkWirelessSsidTrafficShapingRules(self.net_id, count, **TSrules)
+                    if self.WRITE: self.db.wireless.updateNetworkWirelessSsidTrafficShapingRules(self.net_id, count, **TSrules)
                 except:
                     print(f'\t\t-{bcolors.FAIL}Failed to update TrafficShaping. Make sure all rules are complete{bcolors.ENDC}')
 
@@ -480,7 +482,7 @@ class MR_network:
             for ras in ssid['radiusAccountingServers']:
                 ras['secret'] = self.radius_secret
 
-        self.db.wireless.updateNetworkWirelessSsid(self.net_id, **ssid)
+        if self.WRITE: self.db.wireless.updateNetworkWirelessSsid(self.net_id, **ssid)
         
         #deal with iPSK to GP mappings
         return
@@ -492,7 +494,7 @@ class MR_network:
                 print(f'{bcolors.OKGREEN}DEBUG:{bcolors.OKBLUE} GroupPolicy[{source_name}] TargetID[{target_id}]')
                 i.pop('id')
                 i['groupPolicyId'] = str(target_id)
-                self.db.wireless.createNetworkWirelessSsidIdentityPsk(self.net_id,ssid_num, **i)
+                if self.WRITE: self.db.wireless.createNetworkWirelessSsidIdentityPsk(self.net_id,ssid_num, **i)
                 print(f'{bcolors.OKBLUE}Created iPSK Entry')
 
         return
