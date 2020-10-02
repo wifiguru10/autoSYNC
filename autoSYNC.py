@@ -34,27 +34,7 @@ radius_secret = config['autoSYNC']['RADIUS_SECRET']
 
 tag_target = config['TAG']['TARGET']
 tag_master = config['TAG']['MASTER']
-
-#################### User-Configurable 
-
-
-### TAG VARIABLES
-
-#tag_target  = "autoSYNC" #Unique per golden network
-#tag_master  = "as:master" #to assign source/Gold
-#tag_compliance = "as:OOC" #out of compliance
-
-#radius_secret = 'meraki123'  #THIS IS NEEDED FOR ALL EAP!!! This is the key for all 802.1x radius AAA
-
-#the following orgs_whitelist will limit the script to only monitoring specific orgs, or leave blank to search all
-#orgs_whitelist = [] #Uncomment this line to scan ALL ORGS 
-#orgs_whitelist = [ '1234567890' , '2345678901' ,'3456789012' ] #this object is shared across tagHelper instances, to keep whitelist in sync
-#orgs_whitelist = [ '121177' , '577586652210266696' ,'577586652210266697' ] #this object is shared across tagHelper instances, to keep whitelist in sync
-
-#WRITE = True   #Set to False to test the script (read-only)
-
-#################### User-Configurable 
-
+adminEmails = config['ChangeLog']['emails'].replace(' ','').lower().split(',')
 
 
 def main():
@@ -81,8 +61,8 @@ def main():
     #Master ChangeLog Helper
     clh = changelogHelper.changelogHelper(db, orgs)
     clh.ignoreAPI = False #make sure it'll trigger on API changes too, default is TRUE
-    clh.addEmail("ndarrow@cisco.com")
-    #clh.addNetwork('L_577586652210275901')
+    for e in adminEmails:
+        clh.addEmail(e)
 
     clh_clones = changelogHelper.changelogHelper(db, orgs)
     clh_clones.tag_target = tag_target #this sets the TAG so it'll detect additions of new networks during runtime
