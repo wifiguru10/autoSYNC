@@ -24,9 +24,9 @@ Synchronizes meraki network settings from a parent network (golden network) to c
 1. Latest Meraki python library (1.x or later)
 
 
-## what will sync today? **Updated[Oct 6 '20]**
+# what works today? **Updated[Oct 6 '20]**
 
-## General (working)
+###### General (working)
 * **Gold** Master network changes replicate to children networks
 * Changes in children networks revert to match Master network (only pushes changes, not whole profile)
 * Syslog Servers
@@ -34,7 +34,7 @@ Synchronizes meraki network settings from a parent network (golden network) to c
 * Network Alerts
 * Webhooks
 
-## Wireless (working)
+###### Wireless (working)
 * SSID Syncronization
 * RF-Profiles
 * Wireless Network Settings
@@ -43,7 +43,7 @@ Synchronizes meraki network settings from a parent network (golden network) to c
 * Per-SSID L3 Firewall Rules
 * Per-SSID L7 Firewall Rules
 
-## Switching (working)
+###### Switching (working)
 * MTU settings
 * Default Management Vlan
 * Switch Network Settings
@@ -55,16 +55,16 @@ Synchronizes meraki network settings from a parent network (golden network) to c
 * Switch QoS Rules
 * Switch Power Management
 
-# what's next?
+## what's next?
 
-## General (in progress)
+###### General (in progress)
 * Group-Policies
 
-## Wireless (in progress)
+###### Wireless (in progress)
 * iPSK w/o radius keys
 * Scanning API Receivers (no API endpoint currently)
 
-## Switching (future)
+###### Switching (future)
 * auto-STP mapping based on switch type (ex. MS425 priority of 4096 vs MS210 with priority of 32768)
 * auto-Aggregation
 * autoMAC integration, like API Secure-Connect (port provisioning and port-profiling) 
