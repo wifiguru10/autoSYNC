@@ -1,17 +1,21 @@
-## autoSYNC
-Synchronizes meraki network settings from a parent network (golden config) to child networks for a more flexible template alternative
+## autoSYNC aka "The Golden Network" template alternative
+Synchronizes meraki network settings from a parent network (golden network) to child networks for a more flexible template alternative. The script runs in a constantly, monitoring change-logs to detect changes to child networks or the master. If any children are out of compliance, the settings are reverted to the master settings. While any changes to the master will be replicated out to all children. The tool is smart, only pushing the differential config, allowing for much greater scale and API efficiency.
 
-1. Edit the 'autoSYNC.cfg.default' file and save it to 'autoSYNC.cfg'
+## How it works
+
+![autoSYNC Day1 Getting-Started](images/day1.png)
+
+1. Edit the file 'autoSYNC.cfg.default'. Make changes to match your needs and save it to 'autoSYNC.cfg'
 2. tag all your MR networks with TARGET tag (default is 'autoSYNC')
 3. tag ONE network, your MASTER network with MASTER tag AND TARGET tag (default master tag is 'golden')
-4. You can only have one MASTER in each network
+4. You can only have one MASTER in each network, if you have more or less than 1... it'll sleep until it's fixed. (good for migrating Master assignments)
 4. run the autoSYNC.py script. it'll do the rest
 
+![autoSYNC Adding/Removing Networks](images/addremove.png)
 ## notes
-1. Run create_keys.py to import your API key
-
-
-This is beta, lots of stuff broken. May release the blue smoke from your equipment, don't use in production!
+1. API Key - it'll ask you to enter your API key every time unless you run **'create_keys.py'** to import your API key
+2. Once you do the above, you won't have to enter your key ever again as long as it's valid. 
+3. This is beta, lots of stuff broken. YMMV. Might release the magic blue smoke from your gear, may the force be with you and don't use in production!
 
 ## what will sync today? **Updated[Oct 6 '20]**
 # General
