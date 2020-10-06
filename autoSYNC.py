@@ -67,12 +67,16 @@ def main():
 
     clh_clones = changelogHelper.changelogHelper(db, orgs)
     clh_clones.tag_target = tag_target #this sets the TAG so it'll detect additions of new networks during runtime
-    for th in th_array: #go through all tagHelpers and buid a list of clones to watch
+   
+    for th in th_array: #go through all tagHelpers and buid a list of targets 
         th_nets = th.nets
         for thn in th_nets:
             if not tag_master in th.nets[thn]['tags']:
-                clh_clones.addNetwork(thn)
-    #print(clh_clones.watch_list)
+                clh_clones.addNetwork(thn) #this goes into the CLONES bucket
+            else:
+                clh.addNetwork(thn)
+    print(f'Master WL[{clh.watch_list}]')
+    print(f'Clones WL[{clh_clones.watch_list}]')
 
     loop = True #Set this to false to break loop
     

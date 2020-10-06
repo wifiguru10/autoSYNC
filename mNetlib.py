@@ -112,7 +112,7 @@ class MR_network:
     ssids = {}  #  ssid[0] = {<SSID Object>}
     ssids_changed = ""  #holds array of SSID's that changed, to bypass writing to non-changed
     rfprofiles = {} 
-    WRITE = False
+    WRITE = False #default is False, init() sets this
     WPA1_BYPASS = False # Tim, this is for WPA1 bypass
     #Group Policies
     master_GP = None #this holds the master group policy list (for SSID reference, iPSK)
@@ -556,8 +556,8 @@ class MR_network:
             ssid['psk'] = config['WPA1_KEYS']['_ALL_'] #set default key so if it's ont found.....
             if ssid['name'] in config['WPA1_KEYS']:
                 ssid['psk'] = config['WPA1_KEYS'][ssid['name']].replace('"','')
-                print(f'{bcolors.OKGREEN}Using key [{bcolors.WARNING}{ssid["psk"]}{bcolors.OKGREEN}]')
-            print(ssid)
+                #print(f'{bcolors.OKGREEN}Using key [{bcolors.WARNING}{ssid["psk"]}{bcolors.OKGREEN}]')
+            #print(ssid)
         #end-WORKAROUND
 
 
@@ -575,7 +575,7 @@ class MR_network:
             secret = config['RAD_KEYS'][ssid['name']].replace('"','').replace(' ','')
 
         if 'radiusServers' in ssid:
-            print(f'{bcolors.OKGREEN}Using Secret [{bcolors.WARNING}{secret}{bcolors.OKGREEN}]')
+            #print(f'{bcolors.OKGREEN}Using Secret [{bcolors.WARNING}{secret}{bcolors.OKGREEN}]')
             ssid.pop('wpaEncryptionMode') #pop this so it doesn't error
             for rs in ssid['radiusServers']:
                 rs['secret'] = secret
