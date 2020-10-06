@@ -113,7 +113,7 @@ class MR_network:
     ssids_changed = ""  #holds array of SSID's that changed, to bypass writing to non-changed
     rfprofiles = {} 
     WRITE = False
-
+    WPA1_BYPASS = False # Tim, this is for WPA1 bypass
     #Group Policies
     master_GP = None #this holds the master group policy list (for SSID reference, iPSK)
     local_GP  = None #this holds
@@ -585,7 +585,9 @@ class MR_network:
 
         #print(ssid)
 
-        if self.WRITE: self.db.wireless.updateNetworkWirelessSsid(self.net_id, **ssid)
+        if self.WRITE: 
+            if self.WPA1_BYPASS and 'wpaEncryptionMode' in ssid: ssid.pop('wpaEncryptionMode')
+            self.db.wireless.updateNetworkWirelessSsid(self.net_id, **ssid)
         
         #deal with iPSK to GP mappings
         return

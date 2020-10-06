@@ -98,10 +98,12 @@ def main():
             clone_change = clh_clones.hasChange() #burn the first false-positive
             master_change = True
             clone_change = False
-
+        
+        loop_count+=1
 
         for th in th_array:
-            if loop_count > 0: th.sync() #taghelper, look for any new networks inscope
+            #if loop_count > 0: 
+            th.sync() #taghelper, look for any new networks inscope
             th.show() #show inscope networks/orgs
 
             if clone_change: #if there's a change to clones, run a short loop syncing just those networks
@@ -148,11 +150,13 @@ def main():
         if master_num > 1:
             print(f'{bcolors.FAIL}Warning: Too many {bcolors.WARNING}Golden{bcolors.FAIL} networks...sleeping{bcolors.ENDC}')
             time.sleep(5)
+            loop_count = 0
             continue
        
         if master == None:
             print(f'{bcolors.FAIL}Warning: No master Network detected.... going to sleep for 5s{bcolors.ENDC}')
             time.sleep(5)
+            loop_count = 0
             continue
         else:
             print(f'{bcolors.OKBLUE}Master is [{bcolors.WARNING}{master.name}{bcolors.OKBLUE}]{bcolors.ENDC}')
@@ -210,7 +214,6 @@ def main():
             count_sleep -= 1
         print(bcolors.ENDC)
         print()
-        loop_count+=1
         #break #only used when wiping all
         # while loop
 
