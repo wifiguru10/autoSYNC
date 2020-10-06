@@ -5,7 +5,7 @@ Synchronizes meraki network settings from a parent network (golden network) to c
 ![autoSYNC Day1 Getting-Started](Images/day1.png)
 
 ## How it works
-1. Edit the file '''autoSYNC.cfg.default'''. Make changes to match your needs and save it to 'autoSYNC.cfg'
+1. Edit the file 'autoSYNC.cfg.default'. Make changes to match your needs and save it to 'autoSYNC.cfg'
 2. tag all your MR networks with TARGET tag (default is 'autoSYNC')
 3. tag ONE network, your MASTER network with MASTER tag AND TARGET tag (default master tag is 'golden')
 4. You can only have one MASTER in each network, if you have more or less than 1... it'll sleep until it's fixed. (good for migrating Master assignments)
