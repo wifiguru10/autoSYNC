@@ -134,8 +134,8 @@ def main():
                     print(f'{bcolors.FAIL} ERROR: Multiple Master networks detected... exiting....')
                     exit()
                 master = mro
+                #print(f'Master count {master_num}')
                 master_num += 1
-                print(f'Master count {master_num}')
                 clh.clearNetworks()
                 clh.addNetwork(mro.net_id)
                 continue
@@ -169,7 +169,7 @@ def main():
                     print(f'ERROR: TypeError')
                     print(error)
                     sys.exit(1)
-        
+        #exit(0) 
         print()
         endTime = time.time()
         duration = round(endTime-startTime,2)

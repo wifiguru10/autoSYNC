@@ -27,6 +27,7 @@
         #'availabilityTags': ['guest']}
 
 import copy
+import configparser
 
 class bcolors:
  
@@ -471,16 +472,54 @@ class MR_network:
 
         if 'encryptionMode' in ssid and ssid['encryptionMode'] == 'wpa-eap':
             ssid['encryptionMode'] = 'wpa'
+        #if 'wpaEncryptionMode' in ssid and ssid['wpaEncryptionMode'] == "WPA1 and WPA2":
+        #    ssid.pop('wpaEncryptionMode')
+        #    print(f'{bcolors.FAIL}POP!!!!!!!{bcolors.ENDC}')
+        #WORKAROUND - the following section is a workaround for 'has_wpa1_only' NFO, which requires static key assignment in the CFG file    
+        if 'authMode' in ssid and 'wpa1' in ssid['authMode']: # this network has the has_wpa1_only NFO, and needs to be treated differently due to bug
+            print(f'{bcolors.FAIL}NFO for WPA1_ONLY detected, not supported yet{bcolors.ENDC}')
+            exit(1)
+            ssid['authMode'] = 'psk' #would show up as wpa1 if wpa1_only
+            ssid['encryptionMode'] = 'wpa' #why WPA? because you needs it my precious.....
+            
+            #the following setting will error out, it should be ommited completely
+            #ssid['wpaEncryptionMode'] = 'WPA1 only' #defaults to 'WPA2 only', why do we still use WPA1 in todays age?
+                         
+            config = configparser.ConfigParser()
+            config.sections()
+            config.read('autoSYNC.cfg')
+            
+            ssid['psk'] = config['WPA1_KEYS']['_ALL_'] #set default key so if it's ont found.....
+            if ssid['name'] in config['WPA1_KEYS']:
+                ssid['psk'] = config['WPA1_KEYS'][ssid['name']].replace('"','')
+                print(f'{bcolors.OKGREEN}Using key [{bcolors.WARNING}{ssid["psk"]}{bcolors.OKGREEN}]')
+            print(ssid)
+        #end-WORKAROUND
+
+
         if 'radiusFailoverPolicy' in ssid and ssid['radiusFailoverPolicy'] == None:
             ssid['radiusFailoverPolicy'] = 'Allow access'
         if 'radiusLoadBalancingPolicy' in ssid and ssid['radiusLoadBalancingPolicy'] == None:
             ssid['radiusLoadBalancingPolicy'] = 'Strict priority order'
+            
+            
+        config = configparser.ConfigParser()
+        config.sections()
+        config.read('autoSYNC.cfg')
+        secret = config['RAD_KEYS']['_ALL_'].replace('"','').replace(' ','')
+        if ssid['name'] in config['RAD_KEYS']:
+            secret = config['RAD_KEYS'][ssid['name']].replace('"','').replace(' ','')
+
         if 'radiusServers' in ssid:
+            print(f'{bcolors.OKGREEN}Using Secret [{bcolors.WARNING}{secret}{bcolors.OKGREEN}]')
+            ssid.pop('wpaEncryptionMode') #pop this so it doesn't error
             for rs in ssid['radiusServers']:
-                rs['secret'] = self.radius_secret
+                rs['secret'] = secret
         if 'radiusAccountingServers' in ssid:
             for ras in ssid['radiusAccountingServers']:
-                ras['secret'] = self.radius_secret
+               ras['secret'] = secret
+
+        #print(ssid)
 
         if self.WRITE: self.db.wireless.updateNetworkWirelessSsid(self.net_id, **ssid)
         

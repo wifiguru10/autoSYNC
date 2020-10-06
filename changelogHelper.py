@@ -51,7 +51,6 @@ class changelogHelper:
         
         changes = self.getChanges(self.last_Checkin)
         hasChange = False
-        print(f'{bcolors.OKGREEN}Active Admin Emails:[{bcolors.WARNING}{self.adminEmail}{bcolors.OKGREEN}]{bcolors.ENDC}')
         for c in changes:
             #print(c)
             if 'adminEmail' in c and c['adminEmail'] in self.adminEmail or len(self.adminEmail) == 0: #changed this to support arrays instead of specific
@@ -74,6 +73,7 @@ class changelogHelper:
                 hasChange = True
 
         self.last_Checkin = current_time
+        if hasChange: print(f'{bcolors.OKGREEN}Active Admin Emails:[{bcolors.WARNING}{self.adminEmail}{bcolors.OKGREEN}]{bcolors.ENDC}')
         return hasChange
 
     def getChanges(self, TS):
