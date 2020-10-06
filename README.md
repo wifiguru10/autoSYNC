@@ -62,6 +62,7 @@ Synchronizes meraki network settings from a parent network (golden network) to c
 
 ## Wireless (in progress)
 * iPSK w/o radius keys
+* Scanning API Receivers (no API endpoint currently)
 
 ## Switching (future)
 * auto-STP mapping based on switch type (ex. MS425 priority of 4096 vs MS210 with priority of 32768)
