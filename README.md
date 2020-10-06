@@ -33,6 +33,7 @@ This is beta, lots of stuff broken. May release the blue smoke from your equipme
 
 # Switching
 * MTU settings
+* Management Network
 * Switch Network Settings
 * DSCP-2-COS Mappings
 * Spanning-Tree settings
