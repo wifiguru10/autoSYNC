@@ -5,12 +5,15 @@
 WRITE = False
 
 #Set this to true, to crawl all networks. WARNING. Don't set WRITE & ALL_ORGS unless you know what your doing and dislike your job
-ALL_ORGS = True
+ALL_ORGS = True 
+
+#Include switch settings?
+SWITCH = True
 
 RADIUS_SECRET = meraki123!
 
 # Only monitor these orgs, to keep the "crawl" down
-Orgs = 1234, 4566, 1232242, 813583553
+Orgs = 111111111111, 22222222222222, 33333333333
 
 [TAG]
 #TARGET should be on ALL networks that are inscope, the master and all the target networks
@@ -20,4 +23,17 @@ MASTER = golden
 
 [ChangeLog]
 #Leaving this as empty will allow "all changes" to be detected in target networks and will be reverted. adding emails will only revert changes by those users. Once a change is detected, ALL changes will be reverted, not just for that user.
-emails= yabba@dabbaDoo.com, something@foobar.com
+emails= merakiRocks@foo.bar ,something@foo.bar
+
+#Needed for EAP networks using 'My Radius' external radius servers, secrets aren't visible in API to transfer
+[RAD_KEYS]
+#SSID = "<SECRET>"
+OpenRoaming = "openRoamingSecret"
+_ALL_ = "meraki123!"
+
+#Needed for NFO 'has_wpa1_only' workaround
+[WPA1_KEYS]
+#SSID = "<PSK KEY>"
+Guest_Net9 = "GuestInternet"
+WizardMobile = "magus123!" 
+_ALL_ = "defaultWPA1key"

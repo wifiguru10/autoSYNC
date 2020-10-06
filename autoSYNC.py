@@ -26,9 +26,10 @@ if 'true' in config['autoSYNC']['WRITE'].lower(): WRITE = True
 else: WRITE = False
 
 if 'true' in config['autoSYNC']['ALL_ORGS'].lower(): orgs_whitelist = []
-else:
-    orgs_whitelist = config['autoSYNC']['Orgs'].replace(' ','').split(',')
-#    print(orgs_whitelist)
+else:  orgs_whitelist = config['autoSYNC']['Orgs'].replace(' ','').split(',')
+
+if 'true' in config['autoSYNC']['SWITCH'].lower(): SWITCH = True
+else: SWITCH = False
 
 radius_secret = config['autoSYNC']['RADIUS_SECRET']
 
@@ -47,7 +48,7 @@ def main():
     log_dir = os.path.join(os.getcwd(), "Logs/")
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    db = meraki.DashboardAPI(api_key=g.get_api_key(), base_url='https://api.meraki.com/api/v1/', print_console=False) 
+    db = meraki.DashboardAPI(api_key=g.get_api_key(), base_url='https://api.meraki.com/api/v1/', print_console=False, output_log=True, log_file_prefix=os.path.basename(__file__)[:-3], log_path='Logs/',) 
     th_array = []
     th_tmp = tagHelper2.tagHelper(db, tag_target, tag_master,orgs_whitelist)
     th_array.append(th_tmp)
@@ -155,6 +156,7 @@ def main():
                 try:
                     startT = time.time()
                     mro.clone(master)
+                    if SWITCH: mro.clone_switch(master)
                     #mro.wipeALL()
                     endT = time.time()
                     split = round(endT-startT,2)

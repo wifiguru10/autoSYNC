@@ -65,6 +65,7 @@ class tagHelper:
     #crawls all available orgs and collects orgs with tagged networks
     def loadOrgs(self):
         orgs = self.db.organizations.getOrganizations()
+        self.nets = {}
         for o in orgs:
             name = o['name']
             orgID = o['id']
