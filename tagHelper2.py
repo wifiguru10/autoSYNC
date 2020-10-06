@@ -40,16 +40,16 @@ class tagHelper:
         #print(self.orgs)
         for o in self.orgName:
             o_name = self.orgName[o]
-            print (f'{bcolors.OKGREEN}Organization [{bcolors.BOLD} {o_name} {bcolors.ENDC}{bcolors.OKGREEN}]\tOrg_ID [ {bcolors.BOLD}{o}{bcolors.ENDC}{bcolors.OKGREEN} ]')
+            print (f'{bcolors.OKGREEN}Organization [{bcolors.BOLD}{o_name}{bcolors.ENDC}{bcolors.OKGREEN}]\tOrg_ID [{bcolors.BOLD}{o}{bcolors.ENDC}{bcolors.OKGREEN}]')
             for n in self.nets:
                 name = self.nets[n]['name']
                 nid = self.nets[n]['id']
                 tags = self.nets[n]['tags']
                 if o == self.nets[n]['organizationId']: #if it's the correct org
                     if not self.tag_master in tags:
-                        print (f'\t{bcolors.OKGREEN}{bcolors.Dim}Network [{bcolors.ResetDim} {name} {bcolors.Dim}]\tNetID [ {bcolors.ResetDim}{nid}{bcolors.Dim} ]\tTags {bcolors.ResetDim}{tags}{bcolors.ENDC}')
+                        print (f'\t{bcolors.OKGREEN}{bcolors.Dim}Network [{bcolors.ResetDim}{name}{bcolors.Dim}]\tNetID [{bcolors.ResetDim}{nid}{bcolors.Dim}]{bcolors.ENDC}')#\tTags{bcolors.ResetDim}{tags}{bcolors.ENDC}')
                     else:#GOLDEN NETWORK
-                        print (f'\t{bcolors.OKGREEN}{bcolors.Dim}Network [{bcolors.ResetDim}{bcolors.WARNING} {name} {bcolors.OKGREEN}{bcolors.Dim}]\tNetID [ {bcolors.ResetDim}{bcolors.WARNING}{nid}{bcolors.OKGREEN}{bcolors.Dim} ]\tTags {bcolors.BOLD}{tags}{bcolors.ENDC}')
+                        print (f'\t{bcolors.OKGREEN}{bcolors.Dim}Network [{bcolors.ResetDim}{bcolors.WARNING}{name}{bcolors.OKGREEN}{bcolors.Dim}]\tNetID [{bcolors.ResetDim}{bcolors.WARNING}{nid}{bcolors.OKGREEN}{bcolors.Dim}]{bcolors.ENDC}')#\tTags{bcolors.BOLD}{tags}{bcolors.ENDC}')
 
 
         #import copy

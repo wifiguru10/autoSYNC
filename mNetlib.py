@@ -28,6 +28,7 @@
 
 import copy
 import configparser
+import sys
 
 class bcolors:
  
@@ -204,12 +205,12 @@ class MR_network:
                     #print("SAME RF PROFILE PASSING")
                     continue
                 else:
-                    print(f'Updating a RF profile [{name}]')
+                    print(f'\t{bcolors.OKBLUE}Updating a RF profile [{bcolors.WARNING}{name}{bcolors.OKBLUE}]{bcolors.ENDC}')
                     rfp.pop('name') #this needs to be done otherwise the update will fail
                     #print(rfp)
                     if self.WRITE: self.db.wireless.updateNetworkWirelessRfProfile(self.net_id, rfProfileId=cfound['id'], **rfp)
             else:
-                print(f'Creating a new RF Profile [{name}]')
+                print(f' {bcolors.OKBLUE}-Creating a new RF Profile [{bcolors.WARNING}{name}{bcolors.OKBLUE}]')
                 #print(rfp)
                 if self.WRITE: self.db.wireless.createNetworkWirelessRfProfile(self.net_id, **rfp)
                 
@@ -279,7 +280,70 @@ class MR_network:
         self.clone(mr_obj)
         return
 
-    
+    #If both networks contain "switching" then copy those settings
+    def clone_switch(self, mr_obj):
+        print(f'\t{bcolors.OKBLUE}Switch Setting Cloning on Switch[{bcolors.WARNING}{self.name}{bcolors.OKBLUE}]')
+        dst_net = self.db.networks.getNetwork(self.net_id)
+        if not 'switch' in dst_net['productTypes']:
+            print(f'\t\t{bcolors.FAIL}Target network does not contain switching{bcolors.ENDC}')
+            return
+        src_net = self.db.networks.getNetwork(mr_obj.net_id)
+        if not 'switch' in src_net['productTypes']:
+            print(f'\t\t{bcolors.FAIL}Source network does not contain switching{bcolors.ENDC}')
+            return
+        #print(f'{bcolors.OKGREEN}Starting switch configuration/clone!{bcolors.ENDC}') 
+        mtu = self.db.switch.getNetworkSwitchMtu(mr_obj.net_id)
+        self.db.switch.updateNetworkSwitchMtu(self.net_id, **mtu)
+        print(f'\t {bcolors.OKGREEN}-Cloning switch MTU settings...')
+        sw_settings = self.db.switch.getNetworkSwitchSettings(mr_obj.net_id) 
+        self.db.switch.updateNetworkSwitchSettings(self.net_id, **sw_settings)
+        print(f'\t {bcolors.OKGREEN}-Cloning switch Default VLAN settings...')
+        dscp2cos = self.db.switch.getNetworkSwitchDscpToCosMappings(mr_obj.net_id)
+        self.db.switch.updateNetworkSwitchDscpToCosMappings(self.net_id, **dscp2cos)
+        print(f'\t {bcolors.OKGREEN}-Cloning switch DSCP-2-COS mappings...')
+        stp = self.db.switch.getNetworkSwitchStp(mr_obj.net_id)
+        self.db.switch.updateNetworkSwitchStp(self.net_id,**stp)
+        print(f'\t {bcolors.OKGREEN}-Cloning switch Spanning Tree settings...')
+        multiC = self.db.switch.getNetworkSwitchRoutingMulticast(mr_obj.net_id)
+        self.db.switch.updateNetworkSwitchRoutingMulticast(self.net_id, **multiC)
+        print(f'\t {bcolors.OKGREEN}-Cloning switch Multicast settings...')
+        acls = self.db.switch.getNetworkSwitchAccessControlLists(mr_obj.net_id)
+        acls['rules'].remove(acls['rules'][len(acls['rules'])-1]) #remove the default rule at the end
+        self.db.switch.updateNetworkSwitchAccessControlLists(self.net_id, **acls)
+        print(f'\t {bcolors.OKGREEN}-Cloning switch ACL rules...')
+        try:
+            storm = self.db.switch.getNetworkSwitchStormControl(mr_obj.net_id)
+            self.db.switch.updateNetworkSwitchStormControl(self.net_id, **storm)
+            print(f'\t {bcolors.OKGREEN}-Cloning storm control settings{bcolors.ENDC}')
+
+        except:
+            print(f'\t {bcolors.FAIL}-Failed to copy storm control settings{bcolors.ENDC}')
+
+
+        rules_src = self.db.switch.getNetworkSwitchQosRules(mr_obj.net_id)
+        rules_dst = self.db.switch.getNetworkSwitchQosRules(self.net_id)
+        if not len(rules_src) == len(rules_dst): #I know, super simple comparison
+            print(f'\t{bcolors.OKGREEN}-Cloning Switch QoS Rules...')
+            #{'ruleIds': ['577586652210270187', '577586652210270188', '577586652210270189']}
+            rOrder_src = self.db.switch.getNetworkSwitchQosRulesOrder(mr_obj.net_id)
+            rOrder_dst = self.db.switch.getNetworkSwitchQosRulesOrder(self.net_id)
+            for rid in rOrder_src['ruleIds']:
+                #[{'id': '577586652210270187','vlan': None,'protocol': 'ANY','srcPort': None,'dstPort': None,'dscp': -1}, .. ]
+                rule = self.db.switch.getNetworkSwitchQosRule(mr_obj.net_id,rid)
+                try:
+                    #pop the id, and srcPort/dstPort if they're empty, otherwise it'll throw an error
+                    rule.pop('id')
+                    if rule['srcPort'] == None: rule.pop('srcPort')
+                    if rule['dstPort'] == None: rule.pop('dstPort') 
+                    self.db.switch.createNetworkSwitchQosRule(self.net_id,**rule)
+                    print(f'\t\t{bcolors.OKGREEN}-Rule Created[{bcolors.WARNING}{rule}{bcolors.OKGREEN}]')
+                except:
+                    print(f'\t\t{bcolors.OKGREEN}-Rule already exists{bcolors.ENDC}')
+        return
+
+
+
+
 
     #Clones source <mr_obj> to current object/network
     def clone(self, mr_obj):
@@ -450,7 +514,7 @@ class MR_network:
             ### /end-L3/L7/TS
             print()	
         ### /end-anyChange
-        return
+        return anyChange
 
     #Pushes configuration from all stored SSID's to target
     def updateSSIDS(self):
@@ -468,7 +532,7 @@ class MR_network:
         ssid = self.ssids[ssid_num]
         data = {}
         name = ssid['name']
-        print(f'{bcolors.OKBLUE}Updating Network ID[{bcolors.WARNING}{self.net_id}{bcolors.OKBLUE}] Number[{bcolors.WARNING}{ssid_num}{bcolors.OKBLUE}] SSID[{bcolors.WARNING}{name}{bcolors.OKBLUE}]{bcolors.ENDC}')
+        print(f'{bcolors.OKBLUE}Updating Network[{bcolors.WARNING}{self.name}{bcolors.OKBLUE}] ID[{bcolors.WARNING}{self.net_id}{bcolors.OKBLUE}] Number[{bcolors.WARNING}{ssid_num}{bcolors.OKBLUE}] SSID[{bcolors.WARNING}{name}{bcolors.OKBLUE}]{bcolors.ENDC}')
 
         if 'encryptionMode' in ssid and ssid['encryptionMode'] == 'wpa-eap':
             ssid['encryptionMode'] = 'wpa'

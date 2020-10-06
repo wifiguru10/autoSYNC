@@ -95,8 +95,10 @@ def main():
             master_change = clh.hasChange()
             clone_change = clh_clones.hasChange()
         else:#force a full sync on first run
+            clone_change = clh_clones.hasChange() #burn the first false-positive
             master_change = True
             clone_change = False
+
 
         for th in th_array:
             if loop_count > 0: th.sync() #taghelper, look for any new networks inscope
@@ -131,20 +133,25 @@ def main():
         master_num = 0
         for mro in mr_obj:
             if tag_master in mro.tags:
-                if master_num > 1:
-                    print(f'{bcolors.FAIL} ERROR: Multiple Master networks detected... exiting....')
-                    exit()
-                master = mro
                 #print(f'Master count {master_num}')
                 master_num += 1
+                if master_num > 1:
+                    print(f'{bcolors.FAIL}ERROR: Multiple Master networks detected... sleeping....')
+                    continue
+                master = mro
                 clh.clearNetworks()
                 clh.addNetwork(mro.net_id)
                 continue
             else:
                 clh_clones.addNetwork(mro.net_id)
+
+        if master_num > 1:
+            print(f'{bcolors.FAIL}Warning: Too many {bcolors.WARNING}Golden{bcolors.FAIL} networks...sleeping{bcolors.ENDC}')
+            time.sleep(5)
+            continue
        
         if master == None:
-            print(f'{bcolors.ENDC}Warning: No master Network detected.... going to sleep for 5s')
+            print(f'{bcolors.FAIL}Warning: No master Network detected.... going to sleep for 5s{bcolors.ENDC}')
             time.sleep(5)
             continue
         else:
@@ -155,13 +162,13 @@ def main():
             if not master == mro and not master == None:
                 try:
                     startT = time.time()
-                    mro.clone(master)
-                    if SWITCH: mro.clone_switch(master)
+                    CHANGE = mro.clone(master) #returns True if there was a change
+                    if SWITCH and CHANGE: mro.clone_switch(master)
                     #mro.wipeALL()
                     endT = time.time()
                     split = round(endT-startT,2)
                     if split > 2: 
-                        print(f'\t\t{bcolors.OKBLUE} Network Cloned in {bcolors.WARNING}{split}{bcolors.OKBLUE}seconds!')
+                        print(f'\t\t{bcolors.OKBLUE}***Network Cloned in {bcolors.WARNING}{split}{bcolors.OKBLUE} seconds***')
                         print()
                         print()
                 except AttributeError as error:
