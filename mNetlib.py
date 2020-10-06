@@ -542,7 +542,7 @@ class MR_network:
         #WORKAROUND - the following section is a workaround for 'has_wpa1_only' NFO, which requires static key assignment in the CFG file    
         if 'authMode' in ssid and 'wpa1' in ssid['authMode']: # this network has the has_wpa1_only NFO, and needs to be treated differently due to bug
             print(f'{bcolors.FAIL}NFO for WPA1_ONLY detected, not supported yet{bcolors.ENDC}')
-            exit(1)
+            #exit(1)
             ssid['authMode'] = 'psk' #would show up as wpa1 if wpa1_only
             ssid['encryptionMode'] = 'wpa' #why WPA? because you needs it my precious.....
             
