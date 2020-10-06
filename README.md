@@ -13,6 +13,8 @@ Synchronizes meraki network settings from a parent network (golden network) to c
 
 ![autoSYNC Adding/Removing Networks](Images/addremove.png)
 
+![autoSYNC Example Usage](Images/autoSYNC.png)
+
 ## notes
 1. API Key - it'll ask you to enter your API key every time unless you run **'create_keys.py'** to import your API key
 2. Once you do the above, you won't have to enter your key ever again as long as it's valid. 
