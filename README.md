@@ -67,5 +67,6 @@ Synchronizes meraki network settings from a parent network (golden network) to c
 ###### Switching (future)
 * auto-STP mapping based on switch type (ex. MS425 priority of 4096 vs MS210 with priority of 32768)
 * auto-Aggregation
+* port-based TAG syncronization (syncs ports across switches)
 * autoMAC integration, like API Secure-Connect (port provisioning and port-profiling) 
 * Adaptive Policy assignment and sync across networks
