@@ -59,6 +59,8 @@ Synchronizes meraki network settings from a parent network (golden network) to c
 
 ###### General (in progress)
 * Group-Policies
+* Named Org-Whitelist
+* Whitelist Validation (makes sure all orgs that are inscope are accessible via API)
 
 ###### Wireless (in progress)
 * iPSK w/o radius keys
