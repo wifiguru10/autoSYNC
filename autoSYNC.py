@@ -31,8 +31,6 @@ else:  orgs_whitelist = config['autoSYNC']['Orgs'].replace(' ','').split(',')
 if 'true' in config['autoSYNC']['SWITCH'].lower(): SWITCH = True
 else: SWITCH = False
 
-radius_secret = config['autoSYNC']['RADIUS_SECRET']
-
 tag_target = config['TAG']['TARGET']
 tag_master = config['TAG']['MASTER']
 adminEmails = config['ChangeLog']['emails'].replace(' ','').lower().split(',')
@@ -98,12 +96,15 @@ def main():
         if loop_count > 0: #if it's not the first loop, check for changes
             master_change = clh.hasChange()
             clone_change = clh_clones.hasChange()
+            print(f'{bcolors.OKGREEN}Changes Master[{bcolors.WARNING}{master_change}{bcolors.OKGREEN}] Clone[{bcolors.WARNING}{clone_change}{bcolors.OKGREEN}]')
         else:#force a full sync on first run
+            master_change = clh.hasChange() #burn the first false-positive
             clone_change = clh_clones.hasChange() #burn the first false-positive
             master_change = True
             clone_change = False
         
         loop_count+=1
+        print(f'{bcolors.OKGREEN}Loop Count[{bcolors.WARNING}{loop_count}{bcolors.OKGREEN}]')
 
         for th in th_array:
             #if loop_count > 0: 
@@ -166,26 +167,28 @@ def main():
             print(f'{bcolors.OKBLUE}Master is [{bcolors.WARNING}{master.name}{bcolors.OKBLUE}]{bcolors.ENDC}')
        
         print()
-        for mro in mr_obj:
-            if not master == mro and not master == None:
-                try:
-                    startT = time.time()
-                    CHANGE = mro.clone(master) #returns True if there was a change
-                    if SWITCH and CHANGE: mro.clone_switch(master)
-                    #mro.wipeALL()
-                    endT = time.time()
-                    split = round(endT-startT,2)
-                    if split > 2: 
-                        print(f'\t\t{bcolors.OKBLUE}***Network Cloned in {bcolors.WARNING}{split}{bcolors.OKBLUE} seconds***')
-                        print()
-                        print()
-                except AttributeError as error:
-                    print(f'ERROR: Try/Except fail. Cant clone {mro.name}.')
-                    print(error)
-                except TypeError as error:
-                    print(f'ERROR: TypeError')
-                    print(error)
-                    sys.exit(1)
+        master_change = True
+        if master_change or clone_change:
+            for mro in mr_obj:
+                if not master == mro and not master == None:
+                    try:
+                        startT = time.time()
+                        CHANGE = mro.clone(master) #returns True if there was a change
+                        if SWITCH and CHANGE: mro.clone_switch(master)
+                        #mro.wipeALL()
+                        endT = time.time()
+                        split = round(endT-startT,2)
+                        if split > 2: 
+                            print(f'\t\t{bcolors.OKBLUE}***Network Cloned in {bcolors.WARNING}{split}{bcolors.OKBLUE} seconds***')
+                            print()
+                            print()
+                    except AttributeError as error:
+                        print(f'ERROR: Try/Except fail. Cant clone {mro.name}.')
+                        print(error)
+                    except TypeError as error:
+                        print(f'ERROR: TypeError')
+                        print(error)
+                        sys.exit(1)
         #exit(0) 
         print()
         endTime = time.time()

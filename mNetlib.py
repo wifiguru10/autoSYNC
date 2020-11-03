@@ -221,14 +221,31 @@ class MR_network:
         ossid = ssid1_obj #local SSID, "original"
         tssid = ssid2_obj #remote SSID, "target"
         for t in tssid:
-            if t == "radiusFailoverPolicy" or t == "radiusLoadBalancingPolicy":
+            if t == "radiusFailoverPolicy" or t == "radiusLoadBalancingPolicy": #Glitch not being able to set "None" so bypass
                 continue
             if not t in ossid:
-                #print(f'Value [{t}] is not in ossid[{ossid}]')
+                print(f'Value [{t}] is not in ossid[{ossid}]')
                 return False
-            if t in ossid and not ossid[t] == tssid[t]:
-                #print(f'Value [{tssid[t]}] is not equal to ossid[{ossid[t]}]')
+            if t in ossid and not ossid[t] == tssid[t] and not type(tssid[t]) == list and not type(tssid[t]) == dict:
+                print(f'Value [{tssid[t]}] is not equal to ossid[{ossid[t]}]')
                 return False
+
+            #'dot11w': {'enabled': False, 'required': False},                                                                           |
+            #'dot11r': {'enabled': False, 'adaptive': False},   
+            #THIS WONT WORK - BUG in API so 11r/11w settings can't be migrated at this time 11/2020
+            #if t == 'dot11w':
+            #    if not tssid[t]['enabled'] == ossid[t]['enabled']: return False
+            #    if not tssid[t]['required'] == ossid[t]['required']: return False
+            #if t == 'dot11r':
+            #    if not tssid[t]['enabled'] == ossid[t]['enabled']: return False
+            #    if not tssid[t]['adaptive'] == ossid[t]['adaptive']: return False
+ 
+            #this will catch radius servers
+            if type(tssid[t]) == list and not t in ['dot11w', 'dot11r']:
+                # [{'id': 577586652210309197, 'host': '56.43.23.23', 'port': 1812, 'radsecEnabled': True}]  
+                if not len(tssid[t]) == len(ossid[t]): #if the amount of entries don't match, lose equivalency :P
+                    print(f'{bcolors.OKBLUE}LIST LENTH MISMATCH')
+                    return False
         return True
 
     #returns True if they're the same contents
@@ -396,6 +413,7 @@ class MR_network:
         anyChange=False
         if ssid_change or rfp_change:
             anyChange=True
+            print(f'\t{bcolors.OKBLUE}Changes SSID_CHANGE[{bcolors.WARNING}{ssid_change}{bcolors.OKBLUE}] RFP[{bcolors.WARNING}{rfp_change}{bcolors.OKBLUE}]')
             print(f'\t{bcolors.OKBLUE}Updating SSIDS in network {bcolors.WARNING}{self.name}{bcolors.ENDC}')
             print(f'\t{bcolors.OKBLUE}Updating RF Profiles in network {bcolors.WARNING}{self.name}{bcolors.ENDC}')
 
@@ -440,7 +458,10 @@ class MR_network:
 
             ###Clone Alerts
             current_alerts = self.db.networks.getNetworkAlertsSettings(self.net_id)
-            alerts = self.db.networks.getNetworkAlertsSettings(mr_obj.net_id)
+            try:
+                alerts = self.db.networks.getNetworkAlertsSettings(mr_obj.net_id)
+            except:
+                print(f'{bcolors.FAIL}Alert Failure: Alerts[{bcolors.WARNING}{current_alerts}{bcolors.FAIL}]')
             if not self.isSameAlerts(current_alerts, alerts):
 
                 #clone the webhooks
@@ -469,7 +490,10 @@ class MR_network:
 
                 ### Clone Alerts
                 print(f'\t{bcolors.OKBLUE}Updating Alerts in network {bcolors.WARNING}{self.name}{bcolors.ENDC}')
-                if self.WRITE: self.db.networks.updateNetworkAlertsSettings(self.net_id, **alerts)
+                try:
+                    if self.WRITE: self.db.networks.updateNetworkAlertsSettings(self.net_id, **alerts)
+                except:
+                    print(f'{bcolors.FAIL}Failure on alerts[{bcolors.WARNING}{alerts}{bcolors.FAIL}]')
                 ### / end-Alerts
             ### /end-Alerts and Webhooks
             
@@ -536,35 +560,36 @@ class MR_network:
 
         if 'encryptionMode' in ssid and ssid['encryptionMode'] == 'wpa-eap':
             ssid['encryptionMode'] = 'wpa'
-        #if 'wpaEncryptionMode' in ssid and ssid['wpaEncryptionMode'] == "WPA1 and WPA2":
-        #    ssid.pop('wpaEncryptionMode')
-        #    print(f'{bcolors.FAIL}POP!!!!!!!{bcolors.ENDC}')
+
         #WORKAROUND - the following section is a workaround for 'has_wpa1_only' NFO, which requires static key assignment in the CFG file    
-        if 'authMode' in ssid and 'wpa1' in ssid['authMode']: # this network has the has_wpa1_only NFO, and needs to be treated differently due to bug
-            print(f'{bcolors.FAIL}NFO for WPA1_ONLY detected, not supported yet{bcolors.ENDC}')
-            #exit(1)
-            ssid['authMode'] = 'psk' #would show up as wpa1 if wpa1_only
-            ssid['encryptionMode'] = 'wpa' #why WPA? because you needs it my precious.....
+        #if 'authMode' in ssid and 'wpa1' in ssid['authMode']: # this network has the has_wpa1_only NFO, and needs to be treated differently due to bug
+        #    print(f'{bcolors.FAIL}NFO for WPA1_ONLY detected, not supported yet{bcolors.ENDC}')
+        #    #exit(1)
+        #    ssid['authMode'] = 'psk' #would show up as wpa1 if wpa1_only
+        #    ssid['encryptionMode'] = 'wpa' #why WPA? because you needs it my precious.....
             
             #the following setting will error out, it should be ommited completely
             #ssid['wpaEncryptionMode'] = 'WPA1 only' #defaults to 'WPA2 only', why do we still use WPA1 in todays age?
                          
-            config = configparser.ConfigParser()
-            config.sections()
-            config.read('autoSYNC.cfg')
-            
-            ssid['psk'] = config['WPA1_KEYS']['_ALL_'] #set default key so if it's ont found.....
-            if ssid['name'] in config['WPA1_KEYS']:
-                ssid['psk'] = config['WPA1_KEYS'][ssid['name']].replace('"','')
+        #    config = configparser.ConfigParser()
+        #    config.sections()
+        #    config.read('autoSYNC.cfg')
+        #    
+        #    ssid['psk'] = config['WPA1_KEYS']['_ALL_'] #set default key so if it's ont found.....
+        #    if ssid['name'] in config['WPA1_KEYS']:
+        #        ssid['psk'] = config['WPA1_KEYS'][ssid['name']].replace('"','')
                 #print(f'{bcolors.OKGREEN}Using key [{bcolors.WARNING}{ssid["psk"]}{bcolors.OKGREEN}]')
             #print(ssid)
         #end-WORKAROUND
 
 
+        #If the SSID has a single radius server, it'll error if these are set to "None" so pop them
         if 'radiusFailoverPolicy' in ssid and ssid['radiusFailoverPolicy'] == None:
-            ssid['radiusFailoverPolicy'] = 'Allow access'
+            ssid.pop('radiusFailoverPolicy')
+            #ssid['radiusFailoverPolicy'] = 'Allow access'
         if 'radiusLoadBalancingPolicy' in ssid and ssid['radiusLoadBalancingPolicy'] == None:
-            ssid['radiusLoadBalancingPolicy'] = 'Strict priority order'
+            ssid.pop('radiusLoadBalancingPolicy')
+            #ssid['radiusLoadBalancingPolicy'] = 'Strict priority order'
             
             
         config = configparser.ConfigParser()
@@ -576,7 +601,6 @@ class MR_network:
 
         if 'radiusServers' in ssid:
             #print(f'{bcolors.OKGREEN}Using Secret [{bcolors.WARNING}{secret}{bcolors.OKGREEN}]')
-            ssid.pop('wpaEncryptionMode') #pop this so it doesn't error
             for rs in ssid['radiusServers']:
                 rs['secret'] = secret
         if 'radiusAccountingServers' in ssid:
@@ -586,7 +610,6 @@ class MR_network:
         #print(ssid)
 
         if self.WRITE: 
-            if self.WPA1_BYPASS and 'wpaEncryptionMode' in ssid: ssid.pop('wpaEncryptionMode')
             self.db.wireless.updateNetworkWirelessSsid(self.net_id, **ssid)
         
         #deal with iPSK to GP mappings

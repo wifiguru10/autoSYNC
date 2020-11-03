@@ -59,7 +59,7 @@ class changelogHelper:
                         continue
                     else:
                         print(f'{bcolors.FAIL}ChangLog Detected change!{bcolors.ENDC}')
-                        #print(c)
+                        print(c)
                         if not c['networkId'] in self.changed_nets: #remove duplicates
                             self.changed_nets.append(c['networkId'])
                         self.last_Checkin = current_time
