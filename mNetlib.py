@@ -206,11 +206,11 @@ class MR_network:
                 continue
             if not t in ossid:
                 print(f'Value [{t}] is not in ossid[{ossid}]')
-                time.sleep(5)
+                #time.sleep(5)
                 return False
             if t in ossid and not ossid[t] == tssid[t] and not type(tssid[t]) == list and not type(tssid[t]) == dict:
                 print(f'Value [{tssid[t]}] is not equal to ossid[{ossid[t]}]')
-                time.sleep(5)
+                #time.sleep(5)
                 return False
 
             #'dot11w': {'enabled': False, 'required': False},                                                                           |
