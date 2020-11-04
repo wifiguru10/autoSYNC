@@ -10,8 +10,6 @@ ALL_ORGS = True
 #Include switch settings?
 SWITCH = True
 
-RADIUS_SECRET = meraki123!
-
 # Only monitor these orgs, to keep the "crawl" down
 Orgs = 111111111111, 22222222222222, 33333333333
 
@@ -31,9 +29,3 @@ emails= merakiRocks@foo.bar ,something@foo.bar
 OpenRoaming = "openRoamingSecret"
 _ALL_ = "meraki123!"
 
-#Needed for NFO 'has_wpa1_only' workaround
-[WPA1_KEYS]
-#SSID = "<PSK KEY>"
-Guest_Net9 = "GuestInternet"
-WizardMobile = "magus123!" 
-_ALL_ = "defaultWPA1key"
