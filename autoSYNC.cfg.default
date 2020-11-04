@@ -4,7 +4,7 @@
 #Set this to FALSE for READ-ONLY, TRUE for "R/W"
 WRITE = False
 
-#Set this to true, to crawl all networks. WARNING. Don't set WRITE & ALL_ORGS unless you know what your doing and dislike your job
+#Set this to true, to crawl all networks. WARNING. Don't set WRITE & ALL_ORGS unless you know what you're doing and dislike your job
 ALL_ORGS = True 
 
 #Include switch settings?
