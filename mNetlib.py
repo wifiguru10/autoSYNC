@@ -200,13 +200,17 @@ class MR_network:
         ossid = ssid1_obj #local SSID, "original"
         tssid = ssid2_obj #remote SSID, "target"
         for t in tssid:
+            if t in ['dot11w', 'dot11r']: #until the endpoint is fixed, bypass
+                continue
             if t == "radiusFailoverPolicy" or t == "radiusLoadBalancingPolicy": #Glitch not being able to set "None" so bypass
                 continue
             if not t in ossid:
                 print(f'Value [{t}] is not in ossid[{ossid}]')
+                time.sleep(5)
                 return False
             if t in ossid and not ossid[t] == tssid[t] and not type(tssid[t]) == list and not type(tssid[t]) == dict:
                 print(f'Value [{tssid[t]}] is not equal to ossid[{ossid[t]}]')
+                time.sleep(5)
                 return False
 
             #'dot11w': {'enabled': False, 'required': False},                                                                           |
@@ -225,6 +229,12 @@ class MR_network:
                 if not len(tssid[t]) == len(ossid[t]): #if the amount of entries don't match, lose equivalency :P
                     print(f'{bcolors.OKBLUE}LIST LENTH MISMATCH')
                     return False
+            
+            ### <TODO> We should be able to compare iPSKs keys, but can't without WLAN-ID
+            #if t == 'authMode' and tssid[t] == 'ipsk-without-radius':
+            #    print("Matching IPSK SSID")
+            #    tipsk = self.db.wireless.getNetworkWirelessSsidIdentityPsks(mr_obj.net_id,count)
+ 
         return True
 
     #returns True if they're the same contents
@@ -287,7 +297,8 @@ class MR_network:
         if not 'switch' in src_net['productTypes']:
             print(f'\t\t{bcolors.FAIL}Source network does not contain switching{bcolors.ENDC}')
             return
-        #print(f'{bcolors.OKGREEN}Starting switch configuration/clone!{bcolors.ENDC}') 
+       
+        print(f'{bcolors.OKGREEN}Starting switch configuration/clone!{bcolors.ENDC}') 
         mtu = self.db.switch.getNetworkSwitchMtu(mr_obj.net_id)
         self.db.switch.updateNetworkSwitchMtu(self.net_id, **mtu)
         print(f'\t {bcolors.OKGREEN}-Cloning switch MTU settings...')
