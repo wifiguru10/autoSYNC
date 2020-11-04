@@ -106,6 +106,7 @@ class MR_network:
     timeZone = ""
     tags = ""
     net_id = ""
+    master_netid = ""
     wirelessSettings = "" #this holds 'getNetworkWirelessSettings'
     L3firewallRules = "" #this should hold an array of L3 rules [0] = SSID-0
     L7firewallRules = "" #this should hold an array of L7 rules [0] = SSID-0
@@ -118,6 +119,7 @@ class MR_network:
     master_GP = None #this holds the master group policy list (for SSID reference, iPSK)
     local_GP  = None #this holds the Local networks GP list
     master_IPSK = {} #this should hold { '<SSID#>' : [{'id': 74,'name': 'PSK1', 'passphrase': 'somethingsomething!', 'groupPolicyId': 123},..] }
+    local_IPSK = {} #this holds the local networks IPSK info
 
 
     #Initialize with network_Id
@@ -205,11 +207,11 @@ class MR_network:
             if t == "radiusFailoverPolicy" or t == "radiusLoadBalancingPolicy": #Glitch not being able to set "None" so bypass
                 continue
             if not t in ossid:
-                print(f'Value [{t}] is not in ossid[{ossid}]')
+                #print(f'Value [{t}] is not in ossid[{ossid}]')
                 #time.sleep(5)
                 return False
             if t in ossid and not ossid[t] == tssid[t] and not type(tssid[t]) == list and not type(tssid[t]) == dict:
-                print(f'Value [{tssid[t]}] is not equal to ossid[{ossid[t]}]')
+                #print(f'Value [{tssid[t]}] is not equal to ossid[{ossid[t]}]')
                 #time.sleep(5)
                 return False
 
@@ -231,9 +233,19 @@ class MR_network:
                     return False
             
             ### <TODO> We should be able to compare iPSKs keys, but can't without WLAN-ID
-            #if t == 'authMode' and tssid[t] == 'ipsk-without-radius':
-            #    print("Matching IPSK SSID")
-            #    tipsk = self.db.wireless.getNetworkWirelessSsidIdentityPsks(mr_obj.net_id,count)
+            if t == 'authMode' and tssid[t] == 'ipsk-without-radius':
+                ssid_num = tssid['number']
+                #print("Matching IPSK SSID")
+                tipsk = self.db.wireless.getNetworkWirelessSsidIdentityPsks(self.master_netid,ssid_num)
+                sipsk = self.db.wireless.getNetworkWirelessSsidIdentityPsks(self.net_id,ssid_num)
+                if not len(tipsk) == len(sipsk): return False
+                for temp_T in tipsk:
+                    for temp_S in sipsk:
+                        #print(temp_T)
+                        #print(temp_S)
+                        if temp_T['name'] == temp_S['name'] and not temp_T['passphrase'] == temp_S['passphrase']:
+                            print("IPSK don't match!!!!")
+                            return False
  
         return True
 
@@ -354,6 +366,7 @@ class MR_network:
 
     #Clones source <mr_obj> to current object/network
     def clone(self, mr_obj):
+        self.master_netid = mr_obj.net_id
         ssid_mask = []
         #clone the SSIDs
         count = 0
@@ -368,7 +381,7 @@ class MR_network:
                 ssid_change = True
                 ssid_mask.append(count)
                 if mr_obj.ssids[count]['authMode'] == 'ipsk-without-radius':
-                    print("FOUND IPSK SSID")
+                    #print("FOUND IPSK SSID")
                     self.master_IPSK[count] = self.db.wireless.getNetworkWirelessSsidIdentityPsks(mr_obj.net_id,count)
             
             count += 1
@@ -645,12 +658,17 @@ class MR_network:
                 ipsks = self.master_IPSK[ssid_num] #pull the previously stored from Golden/Master
                 #print(f'iPSKs for SSID[{ssid_num}] iPSK[{ipsks}]')
                 local_ipsks = self.db.wireless.getNetworkWirelessSsidIdentityPsks(self.net_id,ssid_num)
+                self.local_IPSK[ssid_num] = copy.deepcopy(local_ipsks)
  
                 #Lazy man's way instead of searching
-#                for li in local_ipsks:
-#                    self.db.wireless.deleteNetworkWirelessSsidIdentityPsk(target_netid,ssid_num,li['id'])
-#                    print(f'Deleting iPSK.....')
-                
+                if len(local_ipsks) > len(ipsks):
+                    for li in local_ipsks:
+                        self.db.wireless.deleteNetworkWirelessSsidIdentityPsk(self.net_id,ssid_num,li['id'])
+                        print(f'Deleting iPSK.....')
+                    #lazy lazy lazy
+                    local_ipsks = self.db.wireless.getNetworkWirelessSsidIdentityPsks(self.net_id,ssid_num)
+                    self.local_IPSK[ssid_num] = copy.deepcopy(local_ipsks)
+
                 for i in ipsks:
                     #print(f'IPSK[{i}]')
                     source_name = self.findGPname(self.master_GP, i['groupPolicyId'])

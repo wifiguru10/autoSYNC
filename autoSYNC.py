@@ -186,10 +186,10 @@ def main():
                     except AttributeError as error:
                         print(f'ERROR: Try/Except fail. Cant clone {mro.name}.')
                         print(error)
-                    except TypeError as error:
-                        print(f'ERROR: TypeError')
-                        print(error)
-                        sys.exit(1)
+                    #except TypeError as error:
+                    #    print(f'ERROR: TypeError')
+                    #    print(error)
+                    #    sys.exit(1)
         #exit(0) 
         print()
         endTime = time.time()
