@@ -29,6 +29,7 @@
 import copy
 import configparser
 import sys
+import time
 
 class bcolors:
  
@@ -113,10 +114,9 @@ class MR_network:
     ssids_changed = ""  #holds array of SSID's that changed, to bypass writing to non-changed
     rfprofiles = {} 
     WRITE = False #default is False, init() sets this
-    WPA1_BYPASS = False # Tim, this is for WPA1 bypass
     #Group Policies
     master_GP = None #this holds the master group policy list (for SSID reference, iPSK)
-    local_GP  = None #this holds
+    local_GP  = None #this holds the Local networks GP list
     master_IPSK = {} #this should hold { '<SSID#>' : [{'id': 74,'name': 'PSK1', 'passphrase': 'somethingsomething!', 'groupPolicyId': 123},..] }
 
 
@@ -133,35 +133,14 @@ class MR_network:
             self.url = network_info['url']
             self.timeZone = network_info['timeZone']
             self.tags = network_info['tags']        
-            self.master_GP = {}
-            self.local_GP = {} # <START HERE DUMBASS> This should be [], and you deleted the GP stuff
+            self.master_GP = []
+            self.local_GP = []
             self.sync()
             return 
         else:
             print(f'ERROR: Cannot initialize MR_network object, source net[{net_id}] does not have a wireless nework')
         return
     ### end-of __init__
-
-    #returns Name based on ID
-    def findGPname(self, GP, gp_id):
-        if len(GP) == 0:
-            print(f'{bcolors.WARNING} NO policies passed to findGPname')
-            return
-        for gp in GP:
-            if 'id' in gp and gp['id'] == gp_id:
-                return gp['name']
-        return
-    
-    #returns ID based on name
-    def findGPid(self, GP, gp_name):
-        if len(GP) == 0: 
-            print(f'{bcolors.WARNING} NO policies passed to findGPid')
-            return
-        for gp in GP:
-            if 'name' in gp and gp['name'] == gp_name:
-                return gp['id']
-        return
-
     #Pull the dashboard config from all SSIDs and updates stored
     def getSSIDS(self):
         count = 0
@@ -382,10 +361,14 @@ class MR_network:
                     self.master_IPSK[count] = self.db.wireless.getNetworkWirelessSsidIdentityPsks(mr_obj.net_id,count)
             
             count += 1
+        # end while-count
 
+        #print(f'Starting GP SYNC')
+        self.updateGP(mr_obj) #kick off GP sync before SSID update, der
+        
         if ssid_change: self.updateSSIDS()
-     
-	#clone the RF Profiles
+   
+ 	#clone the RF Profiles
         rfp_change = False
         for sRFP in mr_obj.rfprofiles:
             found = self.findRFP(sRFP['name'], self.rfprofiles)
@@ -540,6 +523,61 @@ class MR_network:
         ### /end-anyChange
         return anyChange
 
+    #returns GP id of group-policy in GP-array
+    def findGPname(self,GP_array,GPid):
+        key = 'groupPolicyId'
+        if len(GP_array) == 0: #short circuit empty targets
+            return 
+        if GPid < 1:
+            print("NULL GPid")
+            return 
+        for gp in GP_array:
+            if key in gp and int(gp[key]) == int(GPid): 
+                return gp['name']
+        return 
+
+
+    #returns GP id of group-policy in GP-array
+    def findGPid(self,GP_array,value):
+        key = 'name'
+        if len(GP_array) == 0: #short circuit empty targets
+            return 0
+        if value == None or len(value) == 0:
+            print("NULL VALUE")
+            return 0
+        for gp in GP_array:
+            if key in gp and gp[key] == str(value): 
+                return int(gp['groupPolicyId'])
+        
+        print(f'{bcolors.FAIL}Cant find key[{bcolors.WARNING}{key}{bcolors.FAIL}] value[{bcolors.WARNING}{value}{bcolors.FAIL}]{bcolors.ENDC}')
+        return -1
+
+
+    #this will make sure all GP's in Golden network matches target
+    def updateGP(self,mr_obj):
+        #print(f'Updating GP now.....')
+        oGP = self.db.networks.getNetworkGroupPolicies(mr_obj.net_id)
+        tGP = self.db.networks.getNetworkGroupPolicies(self.net_id)
+
+        self.master_GP = []
+        self.local_GP = []
+        for o in oGP:
+            self.master_GP.append(copy.deepcopy(o))
+            value = o['name']
+            target_index = self.findGPid(tGP,value)
+            if target_index < 1:
+                o.pop('groupPolicyId')
+                print(f'{bcolors.OKBLUE}Creating Group Policy[{bcolors.WARNING}{value}{bcolors.OKBLUE}] in Network[{bcolors.WARNING}{self.name}{bcolors.OKBLUE}]')
+                self.db.networks.createNetworkGroupPolicy(self.net_id, **o)
+                
+        tGP = self.db.networks.getNetworkGroupPolicies(self.net_id)
+        self.local_GP = copy.deepcopy(tGP)
+        
+        #for t in tGP:
+        #    self.local_GP.append(copy.deepcopy(t))
+
+        return
+
     #Pushes configuration from all stored SSID's to target
     def updateSSIDS(self):
         count = 0
@@ -560,28 +598,6 @@ class MR_network:
 
         if 'encryptionMode' in ssid and ssid['encryptionMode'] == 'wpa-eap':
             ssid['encryptionMode'] = 'wpa'
-
-        #WORKAROUND - the following section is a workaround for 'has_wpa1_only' NFO, which requires static key assignment in the CFG file    
-        #if 'authMode' in ssid and 'wpa1' in ssid['authMode']: # this network has the has_wpa1_only NFO, and needs to be treated differently due to bug
-        #    print(f'{bcolors.FAIL}NFO for WPA1_ONLY detected, not supported yet{bcolors.ENDC}')
-        #    #exit(1)
-        #    ssid['authMode'] = 'psk' #would show up as wpa1 if wpa1_only
-        #    ssid['encryptionMode'] = 'wpa' #why WPA? because you needs it my precious.....
-            
-            #the following setting will error out, it should be ommited completely
-            #ssid['wpaEncryptionMode'] = 'WPA1 only' #defaults to 'WPA2 only', why do we still use WPA1 in todays age?
-                         
-        #    config = configparser.ConfigParser()
-        #    config.sections()
-        #    config.read('autoSYNC.cfg')
-        #    
-        #    ssid['psk'] = config['WPA1_KEYS']['_ALL_'] #set default key so if it's ont found.....
-        #    if ssid['name'] in config['WPA1_KEYS']:
-        #        ssid['psk'] = config['WPA1_KEYS'][ssid['name']].replace('"','')
-                #print(f'{bcolors.OKGREEN}Using key [{bcolors.WARNING}{ssid["psk"]}{bcolors.OKGREEN}]')
-            #print(ssid)
-        #end-WORKAROUND
-
 
         #If the SSID has a single radius server, it'll error if these are set to "None" so pop them
         if 'radiusFailoverPolicy' in ssid and ssid['radiusFailoverPolicy'] == None:
@@ -612,18 +628,47 @@ class MR_network:
         if self.WRITE: 
             self.db.wireless.updateNetworkWirelessSsid(self.net_id, **ssid)
         
-        #deal with iPSK to GP mappings
-        return
-        if ssid['authMode'] == "ipsk-without-radius":
-            ipsks = self.master_IPSK[ssid_num]
-            for i in ipsks:
-                source_name = self.findGPname(self.master_GP, i['groupPolicyId'])
-                target_id = self.findGPid(self.local_GP, source_name)
-                print(f'{bcolors.OKGREEN}DEBUG:{bcolors.OKBLUE} GroupPolicy[{source_name}] TargetID[{target_id}]')
-                i.pop('id')
-                i['groupPolicyId'] = str(target_id)
-                if self.WRITE: self.db.wireless.createNetworkWirelessSsidIdentityPsk(self.net_id,ssid_num, **i)
-                print(f'{bcolors.OKBLUE}Created iPSK Entry')
+            #deal with iPSK to GP mappings
+            if ssid['authMode'] == "ipsk-without-radius":
+                #self.update
+                ipsks = self.master_IPSK[ssid_num] #pull the previously stored from Golden/Master
+                #print(f'iPSKs for SSID[{ssid_num}] iPSK[{ipsks}]')
+                local_ipsks = self.db.wireless.getNetworkWirelessSsidIdentityPsks(self.net_id,ssid_num)
+ 
+                #Lazy man's way instead of searching
+#                for li in local_ipsks:
+#                    self.db.wireless.deleteNetworkWirelessSsidIdentityPsk(target_netid,ssid_num,li['id'])
+#                    print(f'Deleting iPSK.....')
+                
+                for i in ipsks:
+                    #print(f'IPSK[{i}]')
+                    source_name = self.findGPname(self.master_GP, i['groupPolicyId'])
+                    source_id = i['groupPolicyId']
+                    target_id = self.findGPid(self.local_GP, source_name)
+                    i['groupPolicyId'] = target_id #this is where we assign the new GP_id to the golden iPSK entry to match
+                    local_ipskID = 0
+                    local_ipskDIFF = False
+                    for li in local_ipsks:
+                        #print(li)
+                        if li['name'] == i['name']: 
+                            local_ipskID = li['id']
+                            if not li['passphrase'] == i['passphrase']: local_ipskDIFF = True #this is easy
+
+                            local_ipsk_target_name = self.findGPname(self.local_GP, li['groupPolicyId'])
+                            #check to see if the target(local) group-policy name matches golden
+                            if not source_name == local_ipsk_target_name:#if the source name doesn't match local
+                                local_ipskDIFF = True
+
+                    #print(self.master_GP)
+                    #print(self.local_GP)
+                    i.pop('id') #need to pop it otherwise can't write/update
+                    if target_id < 1 or local_ipskID == 0: #doesn't exist
+                        print(f'{bcolors.OKBLUE}Created iPSK Entry [{bcolors.WARNING}{i["name"]}{bcolors.OKBLUE}]')
+                        self.db.wireless.createNetworkWirelessSsidIdentityPsk(self.net_id,ssid_num, **i)
+                    else: #it already exists, update!
+                        if local_ipskDIFF:
+                            print(f'{bcolors.OKBLUE}Updating iPSK Entry [{bcolors.WARNING}{i["name"]}{bcolors.OKBLUE}]')
+                            self.db.wireless.updateNetworkWirelessSsidIdentityPsk(self.net_id,ssid_num, local_ipskID, **i)
 
         return
     ### end-of updateSSID()

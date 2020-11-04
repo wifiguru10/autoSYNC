@@ -23,12 +23,14 @@ class changelogHelper:
         self.watch_list = []
         self.changed_nets = []
         self.ignoreAPI = True
+        self.last_Checkin = datetime.isoformat(datetime.utcnow()) + 'Z'
         return
 
     def addEmail(self,email):
         if not email in self.adminEmail:
             self.adminEmail.append(email)
             print(f'{bcolors.OKGREEN}Changlog: Adding Email[{bcolors.WARNING}{email}{bcolors.OKGREEN}] to allowed list{bcolors.ENDC}')
+        return
 
     #adds network to watch-list
     def addNetwork(self, netid):
@@ -47,7 +49,7 @@ class changelogHelper:
         self.changed_nets = []
         if self.last_Checkin == "":
             self.last_Checkin = current_time
-            return True
+            return False
         
         changes = self.getChanges(self.last_Checkin)
         hasChange = False

@@ -98,12 +98,11 @@ def main():
             clone_change = clh_clones.hasChange()
             print(f'{bcolors.OKGREEN}Changes Master[{bcolors.WARNING}{master_change}{bcolors.OKGREEN}] Clone[{bcolors.WARNING}{clone_change}{bcolors.OKGREEN}]')
         else:#force a full sync on first run
-            master_change = clh.hasChange() #burn the first false-positive
-            clone_change = clh_clones.hasChange() #burn the first false-positive
+            #master_change = clh.hasChange() #burn the first false-positive
+            #clone_change = clh_clones.hasChange() #burn the first false-positive
             master_change = True
             clone_change = False
         
-        loop_count+=1
         print(f'{bcolors.OKGREEN}Loop Count[{bcolors.WARNING}{loop_count}{bcolors.OKGREEN}]')
 
         for th in th_array:
@@ -135,6 +134,8 @@ def main():
                 print(f'{bcolors.OKBLUE}No changes detected in target networks{bcolors.ENDC}')
 
             print()
+        
+        loop_count+=1
         
         master = None
         master_num = 0
