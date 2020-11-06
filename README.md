@@ -29,12 +29,14 @@ Synchronizes meraki network settings from a parent network (golden network) to c
 ###### General (working)
 * **Gold** Master network changes replicate to children networks
 * Changes in children networks revert to match Master network (only pushes changes, not whole profile)
+* Group-Policies
 * Syslog Servers
 * SNMP Settings
 * Network Alerts
 * Webhooks
 
 ###### Wireless (working)
+* iPSK w/o radius keys
 * SSID Syncronization
 * RF-Profiles
 * Wireless Network Settings
@@ -58,12 +60,11 @@ Synchronizes meraki network settings from a parent network (golden network) to c
 ## what's next?
 
 ###### General (in progress)
-* Group-Policies
-* Named Org-Whitelist
+
+* Named Org-Whitelist(instead of org_id)
 * Whitelist Validation (makes sure all orgs that are inscope are accessible via API)
 
 ###### Wireless (in progress)
-* iPSK w/o radius keys
 * Scanning API Receivers (no API endpoint currently)
 
 ###### Switching (future)
