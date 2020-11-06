@@ -24,7 +24,7 @@ Synchronizes meraki network settings from a parent network (golden network) to c
 1. Latest Meraki python library (1.x or later)
 
 
-# what works today? **Updated[Oct 6 '20]**
+# what works today? **Updated[Nov 6 '20]**
 
 ###### General (working)
 * **Gold** Master network changes replicate to children networks
