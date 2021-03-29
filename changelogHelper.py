@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/ipython3 -i
 
 ### changeLog by Nico Darrow
 
@@ -9,10 +9,9 @@ from mNetlib import bcolors
 class changelogHelper:
     db = None
     orgs = ""
-    watch_list = "" #networkID watch list
+    watch_list = [] #networkID watch list
     tag_target = ""
     changed_nets = ""
-    adminEmail = []
     last_Checkin = ""
     ignoreAPI = ""
 
@@ -26,17 +25,17 @@ class changelogHelper:
         self.last_Checkin = datetime.isoformat(datetime.utcnow()) + 'Z'
         return
 
-    def addEmail(self,email):
-        if not email in self.adminEmail:
-            self.adminEmail.append(email)
-            print(f'{bcolors.OKGREEN}Changlog: Adding Email[{bcolors.WARNING}{email}{bcolors.OKGREEN}] to allowed list{bcolors.ENDC}')
-        return
-
     #adds network to watch-list
     def addNetwork(self, netid):
         self.watch_list.append(netid)
         uniqueNets = list(dict.fromkeys(self.watch_list)) #dedups
         self.watch_list = uniqueNets
+        return
+
+     #adds network to watch-list
+    def delNetwork(self, netid):
+        if netid in self.watch_list:
+            self.watch_list.remove(netid)
         return
 
     #clears watching networks
@@ -55,17 +54,16 @@ class changelogHelper:
         hasChange = False
         for c in changes:
             #print(c)
-            if 'adminEmail' in c and c['adminEmail'] in self.adminEmail or len(self.adminEmail) == 0: #changed this to support arrays instead of specific
-                if 'networkId' in c and c['networkId'] in self.watch_list:
-                    if 'page' in c and c['page'] == 'via API' and self.ignoreAPI:
-                        continue
-                    else:
-                        print(f'{bcolors.FAIL}ChangLog Detected change!{bcolors.ENDC}')
-                        #print(c)
-                        if not c['networkId'] in self.changed_nets: #remove duplicates
-                            self.changed_nets.append(c['networkId'])
-                        self.last_Checkin = current_time
-                        hasChange = True
+            if 'networkId' in c and c['networkId'] in self.watch_list:
+                if 'page' in c and c['page'] == 'via API' and self.ignoreAPI:
+                    continue
+                else:
+                    print(f'{bcolors.FAIL}ChangLog Detected change!{bcolors.ENDC}')
+                    #print(c)
+                    if not c['networkId'] in self.changed_nets: #remove duplicates
+                        self.changed_nets.append(c['networkId'])
+                    self.last_Checkin = current_time
+                    hasChange = True
 
             #the following is supposed to sync any new network that has a "TAG" added but isn't currently in the watch_list
             if 'networkId' in c and not c['networkId'] in self.watch_list and len(self.tag_target) > 0 and c['label'] == 'Network tags' and self.tag_target in c['newValue']:
@@ -75,7 +73,7 @@ class changelogHelper:
                 hasChange = True
 
         self.last_Checkin = current_time
-        if hasChange: print(f'{bcolors.OKGREEN}Active Admin Emails:[{bcolors.WARNING}{self.adminEmail}{bcolors.OKGREEN}]{bcolors.ENDC}')
+#        if hasChange: print(f'{bcolors.OKGREEN}Active Admin Emails:[{bcolors.WARNING}{self.adminEmail}{bcolors.OKGREEN}]{bcolors.ENDC}')
         return hasChange
 
     def getChanges(self, TS):
@@ -102,4 +100,34 @@ class changelogHelper:
 
 
 
-###
+if __name__ == '__main__':
+
+    import meraki
+    import copy
+    import os
+    import pickle
+    from mNetClone import * #new library
+
+    import tagHelper2
+    import time
+    import get_keys as g
+
+    tag_target  = "autoSYNC"
+    tag_master  = "golden"
+    orgs_whitelist = [] 
+
+    db = meraki.DashboardAPI(api_key=g.get_api_key(), base_url='https://api.meraki.com/api/v1/', print_console=False)
+    org_id = '121177' #nixnet
+    org_id2 = '577586652210266696' #nixlab
+    org_id3 = '577586652210266697' # 'G6 Bravo' #
+
+    source_netid = 'L_577586652210276021' #DN_Core Golden_v2
+    target_netid = 'L_577586652210276079' #AutoSync Clone 1
+    t2_netid = 'L_577586652210276080' #AutoSync Clone2
+
+
+    th = tagHelper2.tagHelper(db, tag_target, tag_master, orgs_whitelist)
+    orgs = th.orgs #get a lit of orgs
+
+
+    
