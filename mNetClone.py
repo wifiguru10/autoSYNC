@@ -286,6 +286,7 @@ class mNET:
                 self.ssids_range.append(ssid_num)
         return self.ssids
     
+    #slowest function in the bunch
     def u_getSSIDS_aie(self):
         if self.hasAironetIE == None:
             #print(f'Network {self.name} has aironetIE extensions!!!')
@@ -296,13 +297,14 @@ class mNET:
             else: 
                 self.hasAironetIE = True
             
-        if self.hasAironetIE:
-            self.aironetie =[]
-            for i in range(0,15):   
-                if i in self.ssids_range: #only query/refresh the active SSIDS
-                    aie_code = self.getaironetie(self.net_id, i)
-                    #print(f'\t\t\t{bc.OKBLUE}Detecting AIE for SSID[{bc.WARNING}{i}{bc.OKBLUE}] Status[{bc.WARNING}{aie_code}{bc.OKBLUE}]{bc.ENDC}')
-                    self.aironetie.append(aie_code) #-1 for unkown, 0 for off, 1 for on
+            #only do the full refresh if it's been cloned, cloneFrom_MR will set the aironetie = None
+            if self.hasAironetIE:
+                self.aironetie =[]
+                for i in range(0,15):   
+                    if i in self.ssids_range: #only query/refresh the active SSIDS
+                        aie_code = self.getaironetie(self.net_id, i)
+                        print(f'\t\t\t{bc.OKBLUE}Detecting AIE for SSID[{bc.WARNING}{i}{bc.OKBLUE}] Status[{bc.WARNING}{aie_code}{bc.OKBLUE}]{bc.ENDC}')
+                        self.aironetie.append(aie_code) #-1 for unkown, 0 for off, 1 for on
         return self.aironetie
 
     def u_getSSIDS_l3(self):
@@ -828,20 +830,21 @@ class mNET:
                 secret = config['RAD_KEYS']['_ALL_'].replace('"','').replace(' ','')
                 if temp_SSID['name'] in config['RAD_KEYS']:
                     secret = config['RAD_KEYS'][temp_SSID['name']].replace('"','').replace(' ','')
+                if "meraki123!" in secret:
+                        print(f'\t\t{bc.FAIL}Using DEFAULT!!! Radius Secret [{bc.WARNING}{secret}{bc.FAIL}]')
+                        #sys.exit(1)   
 
                 if 'radiusServers' in temp_SSID:
                     #print(f'{bc.OKGREEN}Using Secret [{bc.WARNING}{secret}{bc.OKGREEN}]')
                     for rs in temp_SSID['radiusServers']:
                         rs['secret'] = secret
+
                 if 'radiusAccountingServers' in temp_SSID:
                     for ras in temp_SSID['radiusAccountingServers']:
-                       ras['secret'] = secret
-                
-                #Check for default and ERROR out if it's default
-                if ras['secret'] == "meraki123!":
-                    print(f'{bc.FAIL}ERROR: Default radius PSK detected, please modify the autoSYNC.cfg file...')
-                    sys.exit(1)
+                        ras['secret'] = secret
          
+                
+                
                 ### END OF THE OVERRIDES/EXCEPTIONS
 
 
@@ -922,7 +925,9 @@ class mNET:
                     print(f'{bc.OKBLUE}\t\tConfiguring AironetIE[{bc.WARNING}{master.aironetie[i]}{bc.OKBLUE}] on SSID[{bc.WARNING}{i}{bc.OKBLUE}]{bc.ENDC}')
 
         if not self.CLEAN:
-            if self.hasAironetIE: self.u_getSSIDS_aie()
+            if self.hasAironetIE: 
+                self.hasAironetIE = None
+                self.u_getSSIDS_aie()
             self.CLEAN = True
 
         #RFProfiles - (if it exists and not equal, delete/update. If it doesn't exist, create)
@@ -1279,7 +1284,7 @@ class mNET:
 
             p_apikey = g.get_api_key()
 
-            r = requests.put('https://api.meraki.com/api/v1/networks/%s/wireless/ssids/%s/overrides' % (p_netid, p_ssid), data=json.dumps(str(p_data)), headers={'X-Cisco-Meraki-API-Key': p_apikey, 'Content-Type': 'application/json'})
+            r = requests.put('https://api.meraki.com/api/v1/networks/%s/wireless/ssids/%s/overrides' % (p_netid, p_ssid), data=json.dumps(p_data), headers={'X-Cisco-Meraki-API-Key': p_apikey, 'Content-Type': 'application/json'})
             
 
             if r.status_code != requests.codes.ok:
@@ -1297,7 +1302,7 @@ class mNET:
 
 if __name__ == '__main__':
 
-    
+    print()
 
     #mnet3.wipeALL()
     #mnet3.cloneFrom(mnet)

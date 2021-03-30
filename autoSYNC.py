@@ -185,8 +185,8 @@ def main():
             print(f'{bcolors.FAIL}Change in a target Network Detected:{bcolors.Blink} Initializing Sync{bcolors.ENDC}')
             inscope_clones = clh_clones.changed_nets #gets list of networks changed
             for ic in inscope_clones:
+                print(f'New Network detected!!!')
                 if not ic in mNets:
-                    print(f'New Network detected!!!')
                     mNets[ic] = mNET(db, ic, WRITE).loadCache()
                     mNets[ic].cloneFrom(mNets[master_netid])
                 else:
