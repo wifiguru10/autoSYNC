@@ -4,7 +4,7 @@
 
 from datetime import *
 import copy
-from mNetlib import bcolors
+from bcolors import bcolors
 
 class changelogHelper:
     db = None

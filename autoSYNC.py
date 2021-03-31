@@ -13,7 +13,7 @@ import copy
 import sys,os
 
 from mNetClone import * #new library
-from mNetlib import * #being deprecated
+from bcolors import bcolors
 import tagHelper2
 import changelogHelper
 import configparser
@@ -70,7 +70,7 @@ def loadCFG(db):
    
 
 def main():
-
+    import time
     # client_query() # this queries current org and all client information and builds database
     # exit()
 
