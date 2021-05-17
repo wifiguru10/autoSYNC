@@ -1,6 +1,10 @@
 #AutoSYNC config file
 
 [autoSYNC]
+
+#Set this to TRUE to run as a daemon, otherwise it'll run once
+LOOP = False
+
 #Set this to FALSE for READ-ONLY, TRUE for "R/W"
 WRITE = False
 
@@ -18,6 +22,12 @@ Orgs = 111111111111, 22222222222222, 33333333333
 TARGET = autoSYNC
 #MASTER should ONLY be on the 'golden network'
 MASTER = golden
+
+[SWITCH_SETTINGS]
+broadcastThreshold = 100
+multicastThreshold = 100
+unknownUnicastThreshold = 100
+
 
 [ChangeLog]
 #Leaving this as empty will allow "all changes" to be detected in target networks and will be reverted. adding emails will only revert changes by those users. Once a change is detected, ALL changes will be reverted, not just for that user.

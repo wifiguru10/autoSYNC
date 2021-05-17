@@ -19,13 +19,13 @@ print()
 print("What tag would you like to source from? Default is 'golden' if left blank")
 tag_golden = input("TAG:")
 if len(tag_golden) == 0:
-    tag_golden  = "golden_core"
+    tag_golden  = "golden"
 
 print()
 print("What tag would you like to target? Default is 'autoSYNC' if left blank")
 tag_target = input("TAG:")
 if len(tag_target) == 0:
-    tag_target  = "autoSYNC_test"
+    tag_target  = "autoSYNC"
 
 
 print(f'TAG Target[{tag_target}] Golden[{tag_golden}]')
@@ -37,7 +37,7 @@ for o in orgs:
     orgs_whitelist.append(o['id'])
 print(orgs_whitelist)
 
-orgs_whitelist = ['121177', '577586652210266696', '577586652210266697']
+
 
 th = tagHelper2.tagHelper(db, tag_target, tag_golden, orgs_whitelist)
 orgs = th.orgs #get a lit of orgs

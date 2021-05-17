@@ -384,7 +384,7 @@ class mNET:
                 if 'unknownunicastthreshold' in config['SWITCH_SETTINGS']:
                     cfg['unknownunicastthreshold'] = config['SWITCH_SETTINGS']['unknownunicastthreshold']
 
-                self.getNetworkSwitchStormControl = {'broadcastThreshold': cfg['broadcastthreshold'],'multicastThreshold': cfg['multicastthreshold'],'unknownUnicastThreshold': cfg['unknownunicastthreshold']}
+                self.getNetworkSwitchStormControl = {'broadcastThreshold': int(cfg['broadcastthreshold']),'multicastThreshold': int(cfg['multicastthreshold']),'unknownUnicastThreshold': int(cfg['unknownunicastthreshold'])}
 
         return self.getNetworkSwitchStormControl
         
@@ -503,6 +503,7 @@ class mNET:
         if self.SYNC_MX: self.MX_cloneFrom(master)
         if self.SYNC_MG: self.MG_cloneFrom(master)
 
+        self.storeCache() #make sure to save cached copy for whatever changes were made
         print()
         return
 
@@ -528,8 +529,11 @@ class mNET:
             if self.WRITE: 
                 print(f'\t{bc.OKGREEN}Updating Syslog Settings in network {bc.WARNING}{self.name}{bc.ENDC}')
                 self.CLEAN = False
-                self.db.networks.updateNetworkSyslogServers(self.net_id, **{'servers': []})
-                self.db.networks.updateNetworkSyslogServers(self.net_id,**master.getNetworkSyslogServers)
+                try:
+                    self.db.networks.updateNetworkSyslogServers(self.net_id, **{'servers': []})
+                    self.db.networks.updateNetworkSyslogServers(self.net_id,**master.getNetworkSyslogServers)
+                except:
+                    print(f'\t{bc.FAIL}Error writing syslog alerts. The target network might not have all products associated to the combined network{bc.ENDC}')
 
         if not self.CLEAN:
             self.u_getNetworkSyslogServers()
@@ -552,7 +556,7 @@ class mNET:
             curr_list = []
             for cwh in self.getNetworkWebhooksHttpServers:
                 curr_list.append(cwh['name'])
-            print(f'current List[{curr_list}]')
+            #print(f'current List[{curr_list}]')
             for mwh in master.getNetworkWebhooksHttpServers:
                 if not mwh['name'] in curr_list:
                     if self.WRITE:
@@ -609,7 +613,15 @@ class mNET:
                     try:
                         self.db.networks.createNetworkGroupPolicy(self.net_id,**tempGP)
                     except:
-                        print(f'{bc.FAIL}ERROR: Cannot create GP policy named {tempGP["name"]}')
+                        foo = sys.exc_info()[1].message['errors']
+                        for f in foo:
+                            if 'Content Filtering settings are not supported' in f:
+                                tempGP.pop('contentFiltering')
+                                try:
+                                    self.db.networks.createNetworkGroupPolicy(self.net_id,**tempGP)
+                                except:
+                                    print(f'\t{bc.FAIL}ERROR: Cannot create GP policy named {tempGP["name"]}')
+                                    print(sys.exc_info())
 
                 else:
                     local_gpid = local_gp['groupPolicyId']
@@ -641,7 +653,7 @@ class mNET:
         if not self.compare(master.getNetworkSwitchMtu, self.getNetworkSwitchMtu):
             if self.WRITE:
                 self.CLEAN = False
-                print(f'\t {bc.OKGREEN}-Updating switch MTU settings...{bc.ENDC}') 
+                print(f'\t{bc.OKGREEN}-Updating switch MTU settings...{bc.ENDC}') 
                 self.db.switch.updateNetworkSwitchMtu(self.net_id, **master.getNetworkSwitchMtu)
             if not self.CLEAN:
                 self.u_getNetworkSwitchMtu()
@@ -651,7 +663,7 @@ class mNET:
         if not self.compare(master.getNetworkSwitchSettings, self.getNetworkSwitchSettings):
             if self.WRITE:
                 self.CLEAN = False
-                print(f'\t {bc.OKGREEN}-Updating switch default VLAN settings...{bc.ENDC}')
+                print(f'\t{bc.OKGREEN}-Updating switch default VLAN settings...{bc.ENDC}')
                 self.db.switch.updateNetworkSwitchSettings(self.net_id, **master.getNetworkSwitchSettings)
             if not self.CLEAN:
                 self.u_getNetworkSwitchSettings()
@@ -661,7 +673,7 @@ class mNET:
         if not self.compare(master.getNetworkSwitchDscpToCosMappings, self.getNetworkSwitchDscpToCosMappings):
             if self.WRITE:
                 self.CLEAN = False
-                print(f'\t {bc.OKGREEN}-Updating switch DSCP-COS settings...{bc.ENDC}')
+                print(f'\t{bc.OKGREEN}-Updating switch DSCP-COS settings...{bc.ENDC}')
                 self.db.switch.updateNetworkSwitchDscpToCosMappings(self.net_id, **master.getNetworkSwitchDscpToCosMappings)
             if not self.CLEAN:
                 self.u_getNetworkSwitchDscpToCosMappings()
@@ -671,7 +683,7 @@ class mNET:
         if not self.compare(master.getNetworkSwitchRoutingMulticast, self.getNetworkSwitchRoutingMulticast):
             if self.WRITE:
                 self.CLEAN = False
-                print(f'\t {bc.OKGREEN}-Updating Switch Multicast settings...{bc.ENDC}')
+                print(f'\t{bc.OKGREEN}-Updating Switch Multicast settings...{bc.ENDC}')
                 self.db.switch.updateNetworkSwitchRoutingMulticast(self.net_id, **master.getNetworkSwitchRoutingMulticast)
             if not self.CLEAN:
                 self.u_getNetworkSwitchRoutingMulticast()
@@ -684,7 +696,7 @@ class mNET:
                 acls = copy.deepcopy(master.getNetworkSwitchAccessControlLists)
                 acls['rules'].remove(acls['rules'][len(acls['rules'])-1]) #remove the default rule at the end
                 self.CLEAN = False
-                print(f'\t {bc.OKGREEN}-Updating Switch ACL rules...{bc.ENDC}')
+                print(f'\t{bc.OKGREEN}-Updating Switch ACL rules...{bc.ENDC}')
                 self.db.switch.updateNetworkSwitchAccessControlLists(self.net_id, **acls)
             if not self.CLEAN:
                 self.u_getNetworkSwitchAccessControlLists()
@@ -695,11 +707,14 @@ class mNET:
         if not self.compare(master.getNetworkSwitchStormControl, self.getNetworkSwitchStormControl):
             if self.WRITE:
                 self.CLEAN = False
-                print(f'\t {bc.OKGREEN}-Updating Switch StormControl rules...{bc.ENDC}')
+                print(f'\t{bc.OKGREEN}-Updating Switch StormControl rules...{bc.ENDC}')
                 try:
-                    self.db.switch.updateNetworkSwitchStormControl(self.net_id, **getNetworkSwitchStormControl)                
+                    self.db.switch.updateNetworkSwitchStormControl(self.net_id, **master.getNetworkSwitchStormControl)                
                 except:
-                    print(f'\t {bc.FAIL}-Failed to copy storm control settings{bc.ENDC}')
+                    print(master.getNetworkSwitchStormControl)
+                    print(f'\t{bc.FAIL}-Failed to copy storm control settings, are there switches in the target network?{bc.ENDC}')
+                    #continue
+                    
 
             if not self.CLEAN:
                 self.u_getNetworkSwitchStormControl()
@@ -709,8 +724,6 @@ class mNET:
 
         #QoS Rules
         if not self.soft_compare(master.getNetworkSwitchQosRules, self.getNetworkSwitchQosRules):
-            
-            #{'ruleIds': ['577586652210270187', '577586652210270188', '577586652210270189']}
             rOrder_src = master.getNetworkSwitchQosRules
             rOrder_dst = self.getNetworkSwitchQosRules
             qosRuns = 0
@@ -743,6 +756,7 @@ class mNET:
                 if rule == None:
                     print(f'{bc.FAIL}ERROR FINDING QoS RULE!!!{bc.ENDC}')
                 else:
+                    self.CLEAN = False
                     try:
                         #pop the id, and srcPort/dstPort if they're empty, otherwismne it'll throw an error
                         rule.pop('id')
@@ -752,6 +766,11 @@ class mNET:
                         print(f'\t\t{bc.OKGREEN}-Rule Created[{bc.WARNING}{rule}{bc.OKGREEN}]')
                     except:
                         print(f'\t\t{bc.OKGREEN}-Rule already exists{bc.ENDC}')
+            
+            if not self.CLEAN:
+                self.u_getNetworkSwitchQosRules()
+                self.CLEAN = True
+
 
 
         #stp = self.db.switch.getNetworkSwitchStp(mr_obj.net_id)
@@ -781,7 +800,11 @@ class mNET:
                 self.CLEAN = True
 
         #getNetworkCellularGatewaySubnetPool = None
-        if not self.compare(master.getNetworkCellularGatewaySubnetPool, self.getNetworkCellularGatewaySubnetPool):
+        masterSub = copy.deepcopy(master.getNetworkCellularGatewaySubnetPool)
+        masterSub.pop('subnets') #drop subnets, if there is a MG assigned to the network, it'll never be the same (SN)
+        selfSub = copy.deepcopy(self.getNetworkCellularGatewaySubnetPool)
+        selfSub.pop('subnets')
+        if not self.compare(masterSub, selfSub):
             if self.WRITE and not master.getNetworkCellularGatewaySubnetPool == None:
                 print(f'\t{bc.LightMagenta}Cloning Subnet settings...{bc.ENDC}') 
                 self.CLEAN = False
@@ -848,7 +871,7 @@ class mNET:
                 continue
             if not self.soft_compare(master.ssids[i], self.ssids[i]):
                 temp_SSID = copy.deepcopy(master.ssids[i]) #Make a copy of the master SSID.... overrides will be needed to write
-                print(f'\t-{bc.OKBLUE} SSID_Num[{i}] configuring SSID[{master.ssids[i]["name"]}] ')
+                print(f'\t-{bc.OKBLUE} SSID_Num[{bc.WARNING}{i}{bc.OKBLUE}] configuring SSID[{bc.WARNING}{master.ssids[i]["name"]}{bc.OKBLUE}] ')
 
                 ###  START OF THE OVERRIDES/EXCEPTIONS
                 if 'encryptionMode' in temp_SSID and temp_SSID['encryptionMode'] == 'wpa-eap':
@@ -947,27 +970,26 @@ class mNET:
 
 
             
-
-        if not self.CLEAN:
-            self.u_getSSIDS() #this also updates ssids_range
-            if self.hasAironetIE: self.u_getSSIDS_aie()
-            if not CLEAN_L3: self.u_getSSIDS_l3()
-            if not CLEAN_L7: self.u_getSSIDS_l7()
-            if not CLEAN_TS: self.u_getSSIDS_ts()
-            self.CLEAN = True
+        #This might not be needed, so could increase sync time.
+        #if not self.CLEAN: 
+            #self.u_getSSIDS() #this also updates ssids_range
+            #if self.hasAironetIE: self.u_getSSIDS_aie()
+            #if not CLEAN_L3: self.u_getSSIDS_l3()
+            #if not CLEAN_L7: self.u_getSSIDS_l7()
+            #if not CLEAN_TS: self.u_getSSIDS_ts()
+            #self.CLEAN = True
         
         #if len(self.ssids_range) == len(master.ssids_range)
         try:
             for i in self.ssids_range: # and self.hasAironetIE:
-                #print(i)
                 if self.hasAironetIE and not self.compare(self.aironetie[i], master.aironetie[i]):
                     if self.WRITE:
                         self.CLEAN = False
                         self.setaironetie(self.net_id, i, master.aironetie[i])
                         print(f'{bc.OKBLUE}\t\tConfiguring AironetIE[{bc.WARNING}{master.aironetie[i]}{bc.OKBLUE}] on SSID[{bc.WARNING}{i}{bc.OKBLUE}]{bc.ENDC}')
         except:
-            #print(f'Master ssid_range[{master.ssid_range}] ssid_aironetie[{master.aironetie}]')
-            #print(f'Self ssid_range[{self.ssid_range}] ssid_aironetie[{self.aironetie}]')
+            print(f'Master ssid_range[{master.ssid_range}] ssid_aironetie[{master.aironetie}]')
+            print(f'Self ssid_range[{self.ssid_range}] ssid_aironetie[{self.aironetie}]')
             #sys.exit(1)
             self.u_getSSIDS()
             self.u_getSSIDS_aie()
@@ -1246,7 +1268,10 @@ class mNET:
 
         #Syslog Settings
         if self.WRITE:
-            self.db.networks.updateNetworkSyslogServers(self.net_id, **{'servers': []})
+            try:
+                self.db.networks.updateNetworkSyslogServers(self.net_id, **{'servers': []})
+            except:
+                print(f'\t{bc.FAIL}Error writing syslog alerts. The target network might not have all products associated to the combined network{bc.ENDC}')
         
         if self.WRITE:
             for i in range(0,15):
