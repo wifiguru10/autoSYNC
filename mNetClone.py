@@ -22,6 +22,7 @@ import sys, getopt, requests, json
 
 class mNET:
 
+    configF = "autoSYNC.cfg" #this is the default
     db = None #this holds the dashboard API object
     org_id = ""
     name = ""
@@ -303,7 +304,7 @@ class mNET:
                 for i in range(0,15):   
                     if i in self.ssids_range: #only query/refresh the active SSIDS
                         aie_code = self.getaironetie(self.net_id, i)
-                        print(f'\t\t\t{bc.OKBLUE}Detecting AIE for SSID[{bc.WARNING}{i}{bc.OKBLUE}] Status[{bc.WARNING}{aie_code}{bc.OKBLUE}]{bc.ENDC}')
+                        #print(f'\t\t\t{bc.OKBLUE}Detecting AIE for SSID[{bc.WARNING}{i}{bc.OKBLUE}] Status[{bc.WARNING}{aie_code}{bc.OKBLUE}]{bc.ENDC}')
                         self.aironetie.append(aie_code) #-1 for unkown, 0 for off, 1 for on
         return self.aironetie
 
@@ -369,8 +370,22 @@ class mNET:
             self.getNetworkSwitchStormControl = self.db.switch.getNetworkSwitchStormControl(self.net_id)
         except:
             #print("Unexpected error:", sys.exc_info()[0])
-            return
-            #raise
+            config = configparser.ConfigParser()
+            config.read(self.configF)
+            #StormControl & IGMP Settings
+            cfg = {}
+            if 'SWITCH_SETTINGS' in config:
+                if 'broadcastthreshold' in config['SWITCH_SETTINGS']:
+                    cfg['broadcastthreshold'] = config['SWITCH_SETTINGS']['broadcastthreshold']
+
+                if 'multicastthreshold' in config['SWITCH_SETTINGS']:
+                    cfg['multicastthreshold'] = config['SWITCH_SETTINGS']['multicastthreshold']
+
+                if 'unknownunicastthreshold' in config['SWITCH_SETTINGS']:
+                    cfg['unknownunicastthreshold'] = config['SWITCH_SETTINGS']['unknownunicastthreshold']
+
+                self.getNetworkSwitchStormControl = {'broadcastThreshold': cfg['broadcastthreshold'],'multicastThreshold': cfg['multicastthreshold'],'unknownUnicastThreshold': cfg['unknownunicastthreshold']}
+
         return self.getNetworkSwitchStormControl
         
     def u_getNetworkSwitchQosRules(self):
@@ -537,6 +552,7 @@ class mNET:
             curr_list = []
             for cwh in self.getNetworkWebhooksHttpServers:
                 curr_list.append(cwh['name'])
+            print(f'current List[{curr_list}]')
             for mwh in master.getNetworkWebhooksHttpServers:
                 if not mwh['name'] in curr_list:
                     if self.WRITE:
@@ -544,7 +560,15 @@ class mNET:
                         self.CLEAN = False
                         mwh_tmp = copy.deepcopy(mwh)
                         mwh_tmp.pop('networkId')
-                        self.db.networks.createNetworkWebhooksHttpServer(self.net_id, **mwh_tmp)
+                        mwh_tmp.pop('id')
+                        if "payloadTemplate" in mwh_tmp:
+                            mwh_tmp.pop('payloadTemplate')
+                        try:
+                            self.db.networks.createNetworkWebhooksHttpServer(self.net_id, **mwh_tmp)
+                        except:
+                            print("{bc.FAIL} Error writing webhooks... something went wrong with this webhook....{bc.ENDC}")
+                            print(mwh_tmp)
+
         if not self.CLEAN:
             self.u_getNetworkWebhooksHttpServers()
             self.CLEAN = True
@@ -554,7 +578,20 @@ class mNET:
         if not self.compare(master.getNetworkAlertsSettings, self.getNetworkAlertsSettings):
             if self.WRITE:
                 self.CLEAN = False
-                self.db.networks.updateNetworkAlertsSettings(self.net_id, **master.getNetworkAlertsSettings)
+                try:
+                    self.db.networks.updateNetworkAlertsSettings(self.net_id, **master.getNetworkAlertsSettings)
+                except:
+                    #print(f'{bc.FAIL}Error configuring networkAlerts{bc.ENDC}')
+                    #print(master.getNetworkAlertsSettings)
+                    #SmartAlerts Override
+                    for alert in master.getNetworkAlertsSettings['alerts']:
+                        popit = [ 'highWirelessUsage', 'onboarding', 'snr']
+                        if alert['type'] in popit:
+                            master.getNetworkAlertsSettings['alerts'].remove(alert)
+                    #Try writing it again without any SmartAlerts
+                    self.db.networks.updateNetworkAlertsSettings(self.net_id, **master.getNetworkAlertsSettings)
+
+                    #print("Unexpected error:", sys.exc_info())
         if not self.CLEAN:
             self.u_getNetworkAlertsSettings()        
             self.CLEAN = True
@@ -668,6 +705,8 @@ class mNET:
                 self.u_getNetworkSwitchStormControl()
                 self.CLEAN = True         
 
+        
+
         #QoS Rules
         if not self.soft_compare(master.getNetworkSwitchQosRules, self.getNetworkSwitchQosRules):
             
@@ -732,17 +771,18 @@ class mNET:
         #MG
         #getNetworkCellularGatewayDhcp = None
         if not self.compare(master.getNetworkCellularGatewayDhcp, self.getNetworkCellularGatewayDhcp):
-            if self.WRITE:
+            if self.WRITE and not master.getNetworkCellularGatewayDhcp == None:
                 print(f'\t{bc.LightMagenta}Cloning DHCP settings...{bc.ENDC}') 
                 self.CLEAN = False
                 self.db.cellularGateway.updateNetworkCellularGatewayDhcp(self.net_id, **master.getNetworkCellularGatewayDhcp)
             if not self.CLEAN:
+
                 self.u_getNetworkCellularGatewayDhcp()
                 self.CLEAN = True
 
         #getNetworkCellularGatewaySubnetPool = None
         if not self.compare(master.getNetworkCellularGatewaySubnetPool, self.getNetworkCellularGatewaySubnetPool):
-            if self.WRITE:
+            if self.WRITE and not master.getNetworkCellularGatewaySubnetPool == None:
                 print(f'\t{bc.LightMagenta}Cloning Subnet settings...{bc.ENDC}') 
                 self.CLEAN = False
                 self.db.cellularGateway.updateNetworkCellularGatewaySubnetPool(self.net_id, **master.getNetworkCellularGatewaySubnetPool)
@@ -752,7 +792,7 @@ class mNET:
 
         #getNetworkCellularGatewayUplink = None
         if not self.compare(master.getNetworkCellularGatewayUplink, self.getNetworkCellularGatewayUplink):
-            if self.WRITE:
+            if self.WRITE and not master.getNetworkCellularGatewayUplink == None:
                 print(f'\t{bc.LightMagenta}Cloning GatewayUplink settings...{bc.ENDC}') 
                 self.CLEAN = False
                 self.db.cellularGateway.updateNetworkCellularGatewayUplink(self.net_id, **master.getNetworkCellularGatewayUplink)
@@ -763,7 +803,7 @@ class mNET:
         #endpoint broken? 500 error. still works tho
         #getNetworkCellularGatewayConnectivityMonitoringDestinations = None
         if not self.compare(master.getNetworkCellularGatewayConnectivityMonitoringDestinations, self.getNetworkCellularGatewayConnectivityMonitoringDestinations):
-            if self.WRITE:
+            if self.WRITE and not master.getNetworkCellularGatewayConnectivityMonitoringDestinations == None:
                 self.CLEAN = False
                 try:
                     print(f'\t{bc.LightMagenta}Cloning ConnectivityMonitoring settings...{bc.ENDC}') 
@@ -825,8 +865,7 @@ class mNET:
                 
 
                 config = configparser.ConfigParser()
-                config.sections()
-                config.read('autoSYNC.cfg')
+                config.read(self.configF)
                 secret = config['RAD_KEYS']['_ALL_'].replace('"','').replace(' ','')
                 if temp_SSID['name'] in config['RAD_KEYS']:
                     secret = config['RAD_KEYS'][temp_SSID['name']].replace('"','').replace(' ','')
@@ -917,12 +956,21 @@ class mNET:
             if not CLEAN_TS: self.u_getSSIDS_ts()
             self.CLEAN = True
         
-        for i in self.ssids_range: # and self.hasAironetIE:
-            if self.hasAironetIE and not self.compare(self.aironetie[i], master.aironetie[i]):
-                if self.WRITE:
-                    self.CLEAN = False
-                    self.setaironetie(self.net_id, i, master.aironetie[i])
-                    print(f'{bc.OKBLUE}\t\tConfiguring AironetIE[{bc.WARNING}{master.aironetie[i]}{bc.OKBLUE}] on SSID[{bc.WARNING}{i}{bc.OKBLUE}]{bc.ENDC}')
+        #if len(self.ssids_range) == len(master.ssids_range)
+        try:
+            for i in self.ssids_range: # and self.hasAironetIE:
+                #print(i)
+                if self.hasAironetIE and not self.compare(self.aironetie[i], master.aironetie[i]):
+                    if self.WRITE:
+                        self.CLEAN = False
+                        self.setaironetie(self.net_id, i, master.aironetie[i])
+                        print(f'{bc.OKBLUE}\t\tConfiguring AironetIE[{bc.WARNING}{master.aironetie[i]}{bc.OKBLUE}] on SSID[{bc.WARNING}{i}{bc.OKBLUE}]{bc.ENDC}')
+        except:
+            #print(f'Master ssid_range[{master.ssid_range}] ssid_aironetie[{master.aironetie}]')
+            #print(f'Self ssid_range[{self.ssid_range}] ssid_aironetie[{self.aironetie}]')
+            #sys.exit(1)
+            self.u_getSSIDS()
+            self.u_getSSIDS_aie()
 
         if not self.CLEAN:
             if self.hasAironetIE: 
@@ -1046,6 +1094,7 @@ class mNET:
             if self.WRITE: 
                 print(f'\t{bc.OKBLUE}-Updating Bluetooth/IOT Settingsin network {bc.WARNING}{self.name}{bc.ENDC}')
                 self.CLEAN = False
+                btCFG = master.getNetworkWirelessBluetoothSettings
                 self.db.wireless.updateNetworkWirelessBluetoothSettings(self.net_id,**btCFG)
         if not self.CLEAN:
             self.u_getNetworkWirelessBluetoothSettings()
@@ -1066,10 +1115,14 @@ class mNET:
             if 'maxPower' in RFP['twoFourGhzSettings'] and RFP['twoFourGhzSettings']['maxPower'] < 5:
                 RFP['twoFourGhzSettings']['maxPower'] = 5
             
+            #Wierd use-case where it'll break when you update via API
+            if 'validAutoChannels' in RFP['twoFourGhzSettings'] and  RFP['twoFourGhzSettings']['validAutoChannels'] == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]:
+                RFP['twoFourGhzSettings']['validAutoChannels'] = [1,6,11]
+
         if 'fiveGhzSettings' in RFP:
-            if 'minPower' in RFP['fiveGhzSettings'] and RFP['fiveGhzSettings']['minPower'] < 5:
+            if 'minPower' in RFP['fiveGhzSettings'] and RFP['fiveGhzSettings']['minPower'] < 8:
                 RFP['fiveGhzSettings']['minPower'] = 8
-            if 'maxPower' in RFP['fiveGhzSettings'] and RFP['fiveGhzSettings']['maxPower'] < 5:
+            if 'maxPower' in RFP['fiveGhzSettings'] and RFP['fiveGhzSettings']['maxPower'] < 8:
                 RFP['fiveGhzSettings']['maxPower'] = 8
         return RFP
 
@@ -1181,6 +1234,7 @@ class mNET:
                 c['alertDestinations'] = {'emails': [], 'snmp': False, 'allAdmins': False, 'httpServerIds': []}
         if self.WRITE:
             self.db.networks.updateNetworkAlertsSettings(self.net_id, **cleared)
+  
 
         #SNMP
         if self.WRITE:

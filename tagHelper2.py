@@ -13,27 +13,28 @@ class tagHelper:
     orgs = None #list of just org ids
     orgName = None #dict of org_id:name { <orgid> : "<name>" }
     nets = None # contains a dict of  { <net_id> : [ {<network> , <network>} ] , .. }
+    golden_net = None #contains network of first found "golden" network
     tag_target   = "" #tags the Network as "active"
-    tag_master   = "" #tag for the master network of the 
+    tag_golden   = "" #tag for the golden network of the 
     orgs_whitelist = [] #usually configured via init()
     last_count = 0
     sync_change = 0
 
     #Initialize with network_Id
-    def __init__(self, db, target, master, orgs_WL):
+    def __init__(self, db, target, golden, orgs_WL):
         self.db = db
         self.orgs = []
         self.orgName = {}
         self.nets = {}
         self.tag_target = target
         self.orgs_whitelist = copy.deepcopy(orgs_WL)
-        self.tag_master = master
+        self.tag_golden = golden
         self.sync()
         return
     
     def show(self):
         print()
-        print(f'\t{bcolors.OKBLUE}TagHelper: target[{bcolors.WARNING}{self.tag_target}{bcolors.OKBLUE}] master[{bcolors.WARNING}{self.tag_master}{bcolors.OKBLUE}]')
+        print(f'\t{bcolors.OKBLUE}TagHelper: target[{bcolors.WARNING}{self.tag_target}{bcolors.OKBLUE}] golden[{bcolors.WARNING}{self.tag_golden}{bcolors.OKBLUE}]')
         print()
         print(f'\t\t{bcolors.HEADER}*************[{bcolors.OKGREEN}Orgs in scope{bcolors.HEADER}]*****************')
         print(bcolors.ENDC)
@@ -47,7 +48,7 @@ class tagHelper:
                 nid = self.nets[n]['id']
                 tags = self.nets[n]['tags']
                 if o == self.nets[n]['organizationId']: #if it's the correct org
-                    if not self.tag_master in tags:
+                    if not self.tag_golden in tags:
                         print (f'\t{bcolors.OKGREEN}{bcolors.Dim}Network [{bcolors.ResetDim}{name}{bcolors.Dim}]\tNetID [{bcolors.ResetDim}{nid}{bcolors.Dim}]{bcolors.ENDC}')#\tTags{bcolors.ResetDim}{tags}{bcolors.ENDC}')
                     else:#GOLDEN NETWORK
                         print (f'\t{bcolors.OKGREEN}{bcolors.Dim}Network [{bcolors.ResetDim}{bcolors.WARNING}{name}{bcolors.OKGREEN}{bcolors.Dim}]\tNetID [{bcolors.ResetDim}{bcolors.WARNING}{nid}{bcolors.OKGREEN}{bcolors.Dim}]{bcolors.ENDC}')#\tTags{bcolors.BOLD}{tags}{bcolors.ENDC}')
@@ -95,10 +96,16 @@ class tagHelper:
                     if self.tag_target in tags:
                         #print("found one!*****************************************")
                         #print(n)
+                    
                         if not orgID in self.orgs: self.orgs.append(orgID)
                         if not orgID in self.orgName:
                             self.orgName[orgID] = o['name']
 
+                        #Looks for golden master
+                        if self.tag_golden in tags:
+                            #print("FOUND GOLDEN")
+                            self.golden_net = n #captures the master in a variable
+                        
                         nid = n['id']
                         self.nets[nid] = n
             except AttributeError as e:

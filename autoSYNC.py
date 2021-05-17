@@ -29,14 +29,18 @@ tag_master = ''
 TAGS = []
 
 
-def loadCFG(db):
+def loadCFG(db,filename):
 
     cfg = {}
 
     print("LOADING CONFIG")
     config = configparser.ConfigParser()
-    config.sections()
-    config.read('autoSYNC.cfg')
+    config.read(filename)
+
+    if 'true' in config['autoSYNC']['LOOP'].lower():
+        cfg['LOOP'] = True
+    else:
+        cfg['LOOP'] = False
 
     if 'true' in config['autoSYNC']['WRITE'].lower(): 
         cfg['WRITE'] = True
@@ -62,6 +66,7 @@ def loadCFG(db):
     cfg['tag_target'] = config['TAG']['TARGET']
     cfg['tag_master'] = config['TAG']['MASTER']
 
+
 #    cfg['adminEmails'] = config['ChangeLog']['emails'].replace(' ','').lower().split(',')
     
 
@@ -80,7 +85,8 @@ def main():
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     db = meraki.DashboardAPI(api_key=g.get_api_key(), base_url='https://api.meraki.com/api/v1/', print_console=False, output_log=True, log_file_prefix=os.path.basename(__file__)[:-3], log_path='Logs/',) 
-    cfg = loadCFG(db)
+    configFile = 'autoSYNC.cfg'
+    cfg = loadCFG(db,configFile)
 
     th_array = []
     tag_target = cfg['tag_target']
@@ -137,9 +143,11 @@ def main():
                 clh_clones.addNetwork(thn) #this goes into the CLONES bucket
                 if not thn in mNets:
                     mNets[thn] = mNET(db, thn, WRITE).loadCache()
+                    if configFile != "autoSYNC.cfg": mNets[thn].configF = configFile #Only change it if it's different than default
             else:
                 if not thn in mNets:
                     mNets[thn] = mNET(db, thn, WRITE).loadCache()
+                    if configFile != "autoSYNC.cfg": mNets[thn].configF = configFile #Only change it if it's different than default
                 if master_netid != thn:
                     master_netid = thn
                     clh.clearNetworks() #wipes out previous master
@@ -147,8 +155,8 @@ def main():
                     clh.addNetwork(thn)
             
         print()
-        print(f'Master WL[{clh.watch_list}]')
-        print(f'Clones WL[{clh_clones.watch_list}]')
+        #print(f'Master WL[{clh.watch_list}]')
+        #rint(f'Clones WL[{clh_clones.watch_list}]')
         
         th.show() #show inscope networks/orgs
         
@@ -266,6 +274,8 @@ def main():
         print()
         #break #only used when wiping all
 
+        if cfg['LOOP'] == False:
+            loop = False
         #if loop_count > 5:
         #    loop = False
         # while loop
