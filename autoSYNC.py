@@ -33,6 +33,11 @@ def loadCFG(db,filename):
 
     cfg = {}
 
+    if not os.path.exists(filename):
+        print(f'{bc.FAIL}Config file [{filename}] is not found, please copy "autoSYNC.cfg.default" to "autoSYNC.cfg", edit and try running again{bc.ENDC}')
+        print()
+        sys.exit()
+
     print("LOADING CONFIG")
     config = configparser.ConfigParser()
     config.read(filename)
