@@ -106,8 +106,11 @@ class mNET:
         self.productTypes = self.getNetwork['productTypes']
         self.url = self.getNetwork['url']
         self.tags = self.getNetwork['tags']
-        self.f = self.cache_dir + self.net_id + ".mnet"
 
+        if not os.path.exists(self.cache_dir):
+            os.mkdir(self.cache_dir)
+
+        self.f = self.cache_dir + self.net_id + ".mnet"
         no_cache = True
         if os.path.exists(self.f) and self.USE_CACHE:
             mnet_cached = pickle.load(open(self.f,"rb"))
