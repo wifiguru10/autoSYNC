@@ -1,4 +1,12 @@
-# autoSYNC
+# autoSYNC (Deprecated)
+
+****
+Latest version is located here https://github.com/wifiguru10/autoSYNC_aio/
+
+This version has been deprecated
+*****
+
+
 ## "The Golden Network" template alternative
 Synchronizes meraki network settings from a parent network (golden network) to child networks for a more flexible template alternative. The script runs in a constantly, monitoring change-logs to detect changes to child networks or the master. If any children are out of compliance, the settings are reverted to the master settings. While any changes to the master will be replicated out to all children. The tool is smart, only pushing the differential config, allowing for much greater scale and API efficiency.
 
